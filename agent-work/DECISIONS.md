@@ -216,3 +216,13 @@
 - Trade-offs: the planner does not yet handle cross-kind reuse (e.g. SDK root serving the SDK part of an MSVC-only capability set) - that is the plan integration's job.
 - Evidence/tests: reuse_planner_incompatible_for_wrong_kind (SDK root + MSVC capability = Incompatible).
 - Revisit condition: cross-kind reuse planner (P10+).
+
+## DEC-022: Provider API is a thin trait layer, not a full lifecycle replacement
+- Date: 2026-11-22
+- Phase: P10
+- Context: The spec suggests ToolchainProvider with detect/resolve/acquire/validate/environment lifecycle methods. The existing code has direct pipeline calls (download, extract, record) that work correctly; replacing them wholesale would be a large refactor with high regression risk.
+- Decision: define ToolchainProvider and BuildToolProvider as trait interfaces for detect/resolve_version/include_components/validate_downloaded, with MsvcToolchainProvider and SimpleBuildToolProvider as concrete implementations. The shared infrastructure (Plan, Cache, Transaction, Receipt) remains owned by the caller.
+- Why: additive, low-risk; the traits can grow without breaking existing callers; the full lifecycle replacement is future work.
+- Trade-offs: the Provider API does not yet drive the CLI pipeline; external providers cannot plug in until the plan/apply pipeline accepts them.
+- Evidence/tests: 4 provider tests; full suite green.
+- Revisit condition: when external provider support is needed.

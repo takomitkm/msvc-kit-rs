@@ -42,12 +42,25 @@ P00-P07 all COMPLETE, each pushed with CI workflow success on the phase HEAD
 - [x] 9 fixture-based tests (no PATH, read-only verified, false-positive, reuse states)
 - [x] Full verification green (724 passed / 0 failed)
 
+## Completed (P10)
+- [x] ToolchainProvider trait (provider_id, detect, resolve_version, include_components)
+- [x] BuildToolProvider trait (tool_id, detect)
+- [x] MsvcToolchainProvider (adapts detect_msvc + resolve_msvc_version)
+- [x] SimpleBuildToolProvider (adapts detect_build_tool)
+- [x] 4 tests; full verification green (724 passed / 0 failed in lib+integration)
+
 ## Remaining
-- [ ] push P09 commits; verify CI workflow conclusion=success on the pushed sha
-- [ ] P10 (next): Provider API
+- [ ] push P10 commits; verify CI workflow conclusion=success on the pushed sha
+- [ ] P11 (next): Full regression / docs / release readiness / FINAL_REPORT.md
 - [ ] P09 - Detection / Reuse
 - [ ] P10 - Provider API
 - [ ] P11 - Full regression / docs / release readiness / FINAL_REPORT.md
+
+## Files changed (P10)
+- `src/installer/provider.rs`: new public module (traits + MSVC/build-tool adapters)
+- `src/installer/mod.rs`: registration
+- `src/lib.rs`: re-exports
+- `agent-work/PHASES/P10-provider-api.md`: phase report
 
 ## Files changed (P09)
 - `src/installer/detection.rs`: new public module
@@ -72,7 +85,7 @@ P00-P07 all COMPLETE, each pushed with CI workflow success on the phase HEAD
 - `agent-work/INTERIM-STATUS.md`: pause record
 
 ## Tests
-- PASS: `cargo fmt --all -- --check` (D:/rust/p02c-fmt.log, final P09 round)
+- PASS: `cargo fmt --all -- --check` (D:/rust/p02c-fmt.log, final P10 round)
 - PASS: `cargo clippy --all-targets --all-features -- -D warnings` (D:/rust/p02c-clippy.log)
 - PASS: `cargo test --all-features --no-fail-fast` - 724 passed / 0 failed / 7 ignored (D:/rust/p02c-test.log)
 - PASS: `cargo test --doc` - 23 passed; `cargo doc` -D warnings (D:/rust/p02c-test-doc.log, p02c-doc.log)
@@ -83,7 +96,7 @@ P00-P07 all COMPLETE, each pushed with CI workflow success on the phase HEAD
 - rustfmt drift between CI and the build machine caused two style-only fix commits (6bc0a51, f7fc575); the CI-failing shas e77657c and 6087ebb were repaired same-session.
 
 ## Next exact action
-Commit P09 as `feat(detection)` and `docs(agent-work)`; push; poll CI for conclusion=success. Then P10: Provider API (ToolchainProvider/BuildToolProvider layering, MSVC/SDK provider adaptation). Prepared input: the real VS
+Commit P10 as `feat(provider)` and `docs(agent-work)`; push; poll CI for conclusion=success. Then P11: full offline regression, Windows integration, fault injection, docs/README/README_zh/API/CLI help, migration notes, lock schema examples, attribution, dependency/MSRV check, and FINAL_REPORT.md. Prepared input: the real VS
 17.14 package manifest dependency schema was sampled on the build machine
 (`{ "<package-id>": { "version": "...", "behaviors": "..." } }` free-form
 shapes) - the resolver must validate dependency shapes strictly (unknown

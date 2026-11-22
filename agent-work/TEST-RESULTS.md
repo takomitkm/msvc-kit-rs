@@ -77,3 +77,6 @@ lib unittests 218, bin unittests 7, integration 24+20+11+29+7+50+16+36+3+6+11+5+
 | P09-T01 | P09 | cargo test --all-features --no-fail-fast (final) | Win11, user | PASS | D:/rust/p02c-test.log | 724 passed / 0 failed / 7 ignored; adds 9 detection tests (MSVC/SDK/build tools, false-positive, read-only, reuse states) |
 | P09-T02 | P09 | cargo fmt --all -- --check (final) | Win11, user | PASS | D:/rust/p02c-fmt.log |  |
 | P09-T03 | P09 | cargo clippy --all-targets --all-features -- -D warnings (final) | Win11, user | PASS | D:/rust/p02c-clippy.log |  |
+| P10-T01 | P10 | cargo test --all-features --no-fail-fast (final) | Win11, user | PASS | D:/rust/p02c-test.log | 724 passed / 0 failed / 7 ignored; adds 4 provider tests (MSVC detect, version resolve, build tool detect, provider_id) |
+| P10-T02 | P10 | cargo fmt --all -- --check (final) | Win11, user | PASS | D:/rust/p02c-fmt.log |  |
+| P10-T03 | P10 | cargo clippy --all-targets --all-features -- -D warnings (final) | Win11, user | PASS | D:/rust/p02c-clippy.log |  |
