@@ -196,3 +196,13 @@
 - Trade-offs: flattening couples v2 to v1 field names (acceptable - the v1 core is frozen); extra-file reporting is informational only.
 - Evidence/tests: 6 lock-v2 tests; 703 passed / 0 failed.
 - Revisit condition: verify/doctor CLI wiring (P08+).
+
+## DEC-020: Resolver uses find_msvc_packages for seeds, not naive fragment matching; 16 MB main-thread stack for the CLI
+- Date: 2026-11-22
+- Phase: P08
+- Context: The resolver's capability-to-package mapping could use naive substring matching or the battle-tested find_msvc_packages (arch filtering, component opt-ins, exclude patterns). Also, the CLI binary's main async block embeds every match arm's inner futures on the 1 MB main-thread stack (Windows); adding create_install_plan_with_profile pushed it past the limit in debug builds.
+- Decision: (1) profile seeds come from find_msvc_packages (including the profile component opt-ins and exclude patterns), then the resolver closes over manifest dependencies with strict schema validation; (2) the main-thread stack is set to 16 MB via .cargo/config.toml linker flags for Windows/MSVC targets; (3) large plan futures are Box::pinned to heap-allocate their state machines.
+- Why: (1) avoids reimplementing arch filtering and component logic that find_msvc_packages already handles correctly; (2) the stack overflow affects --version (main frame allocated at entry), not just the plan path; (3) heap-allocating large futures is the standard tokio fix.
+- Trade-offs: (1) the resolver's fragment matching is only exercised for dependency closure, not primary selection; (2) 16 MB stack is generous but safe for debug builds with large futures; (3) Box::pin adds a heap allocation per plan call.
+- Evidence/tests: 11 resolver tests + stack overflow diagnosis (D:/rust/p08diag-status.log).
+- Revisit condition: if CI reports stack overflow on other arms, box their futures too; if the resolver's fragment matching needs arch filtering for the closure, add it.

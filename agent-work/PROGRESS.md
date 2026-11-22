@@ -24,11 +24,29 @@ P00-P07 all COMPLETE, each pushed with CI workflow success on the phase HEAD
 - [x] InstalledManifest made public (verify contract)
 - [x] 6 tests; full verification green (703 passed / 0 failed / 7 ignored)
 
+## Completed (P08)
+- [x] BuildProfile (c-native/cpp-native/cpp-desktop/cpp-mfc/cpp-spectre/cross-arm64) with evidence-backed capability fragments
+- [x] DependencySpec strict parse (object{version,behaviors?} + bare string; unknown shapes error)
+- [x] Dependency closure + version conflict + cycle detection + stable topological order
+- [x] profile_seeds integrating find_msvc_packages (standard matcher) with resolver closure
+- [x] create_install_plan_with_profile (plan from resolved graph) + --profile CLI flag
+- [x] 16 MB main-thread stack fix (Windows debug-build stack overflow from embedded futures)
+- [x] 11 resolver tests; full verification green (714 passed / 0 failed)
+
 ## Remaining
-- [ ] P08 - Build Profile / Dependency Resolver (in progress)
+- [ ] push P08 commits; verify CI workflow conclusion=success on the pushed sha
+- [ ] P09 (next): Detection / Reuse
 - [ ] P09 - Detection / Reuse
 - [ ] P10 - Provider API
 - [ ] P11 - Full regression / docs / release readiness / FINAL_REPORT.md
+
+## Files changed (P08)
+- `src/installer/resolver.rs`: new public module
+- `src/installer/plan.rs`: create_install_plan_with_profile
+- `src/bin/msvc-kit.rs`: --profile CLI + Box::pin large futures
+- `src/downloader/mod.rs`: VsPackage re-export
+- `.cargo/config.toml`: 16 MB main-thread stack (Windows MSVC)
+- `agent-work/PHASES/P08-resolver.md`: phase report
 
 ## Files changed (P07)
 - `src/installer/lock_v2.rs`: new public module (v2 schema, verify_installed_tree, mutation detection)
@@ -38,10 +56,10 @@ P00-P07 all COMPLETE, each pushed with CI workflow success on the phase HEAD
 - `src/downloader/common_tests.rs`: flaky test annotated (pre-existing parallel-load flake, passes twice in isolation)
 - `agent-work/INTERIM-STATUS.md`: pause record
 
-## Tests (final P07 round)
-- PASS: `cargo fmt --all -- --check` (D:/rust/p02c-fmt.log)
+## Tests
+- PASS: `cargo fmt --all -- --check` (D:/rust/p02c-fmt.log, final P08 round)
 - PASS: `cargo clippy --all-targets --all-features -- -D warnings` (D:/rust/p02c-clippy.log)
-- PASS: `cargo test --all-features --no-fail-fast` - 703 passed / 0 failed / 7 ignored (D:/rust/p02c-test.log)
+- PASS: `cargo test --all-features --no-fail-fast` - 714 passed / 0 failed / 7 ignored (D:/rust/p02c-test.log)
 - PASS: `cargo test --doc` - 23 passed; `cargo doc` -D warnings (D:/rust/p02c-test-doc.log, p02c-doc.log)
 - Known flake (pre-existing, annotated): `a_corrupted_first_transfer_is_refetched_and_succeeds` - fails rarely under full-suite parallel load; passes twice in isolation.
 
@@ -50,7 +68,7 @@ P00-P07 all COMPLETE, each pushed with CI workflow success on the phase HEAD
 - rustfmt drift between CI and the build machine caused two style-only fix commits (6bc0a51, f7fc575); the CI-failing shas e77657c and 6087ebb were repaired same-session.
 
 ## Next exact action
-P08: write failing resolver fixture tests (DAG/cycle/conflict/unknown-shape/determinism/profiles), then implement installer::resolver (strict dependency schema, closure, stable topo sort) and wire plan integration. Prepared input: the real VS
+Commit P08 as `feat(resolver)` and `docs(agent-work)`; push; poll CI for conclusion=success. Then P09: Detection / Reuse (MSVC/SDK/LLVM/MinGW detectors, capability-based reuse planner). Prepared input: the real VS
 17.14 package manifest dependency schema was sampled on the build machine
 (`{ "<package-id>": { "version": "...", "behaviors": "..." } }` free-form
 shapes) - the resolver must validate dependency shapes strictly (unknown

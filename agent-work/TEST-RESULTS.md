@@ -70,3 +70,7 @@ lib unittests 218, bin unittests 7, integration 24+20+11+29+7+50+16+36+3+6+11+5+
 | P07-T02 | P07 | cargo fmt --all -- --check (final) | Win11, user | PASS | D:/rust/p02c-fmt.log |  |
 | P07-T03 | P07 | cargo clippy --all-targets --all-features -- -D warnings (final) | Win11, user | PASS | D:/rust/p02c-clippy.log |  |
 | P07-T04 | P07 | flaky downloader test isolation runs (x2) | Win11, user | PASS | ssh transcript | a_corrupted_first_transfer passed twice in isolation; annotated as known parallel-load flake (pre-existing upstream test) |
+| P08-T01 | P08 | cargo test --all-features --no-fail-fast (final) | Win11, user | PASS | D:/rust/p02c-test.log | 714 passed / 0 failed / 7 ignored; adds 11 resolver tests (chain, diamond, determinism, cycle, missing dep, 4 unknown-shape rejections, version conflict, prefix match, fragment+exclude seeds, profile fragments, TOML round-trip, realistic desktop set) |
+| P08-T02 | P08 | cargo fmt --all -- --check (final) | Win11, user | PASS | D:/rust/p02c-fmt.log |  |
+| P08-T03 | P08 | cargo clippy --all-targets --all-features -- -D warnings (final) | Win11, user | PASS | D:/rust/p02c-clippy.log |  |
+| P08-T04 | P08 | stack overflow diagnosis + fix | Win11, user | PASS (after fix) | D:/rust/p08diag-status.log | bisected to #[tokio::main] embedding Plan arm futures on 1 MB main-thread stack; fixed by 16 MB linker stack + Box::pin |
