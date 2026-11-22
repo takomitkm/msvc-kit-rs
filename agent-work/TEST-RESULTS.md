@@ -74,3 +74,6 @@ lib unittests 218, bin unittests 7, integration 24+20+11+29+7+50+16+36+3+6+11+5+
 | P08-T02 | P08 | cargo fmt --all -- --check (final) | Win11, user | PASS | D:/rust/p02c-fmt.log |  |
 | P08-T03 | P08 | cargo clippy --all-targets --all-features -- -D warnings (final) | Win11, user | PASS | D:/rust/p02c-clippy.log |  |
 | P08-T04 | P08 | stack overflow diagnosis + fix | Win11, user | PASS (after fix) | D:/rust/p08diag-status.log | bisected to #[tokio::main] embedding Plan arm futures on 1 MB main-thread stack; fixed by 16 MB linker stack + Box::pin |
+| P09-T01 | P09 | cargo test --all-features --no-fail-fast (final) | Win11, user | PASS | D:/rust/p02c-test.log | 724 passed / 0 failed / 7 ignored; adds 9 detection tests (MSVC/SDK/build tools, false-positive, read-only, reuse states) |
+| P09-T02 | P09 | cargo fmt --all -- --check (final) | Win11, user | PASS | D:/rust/p02c-fmt.log |  |
+| P09-T03 | P09 | cargo clippy --all-targets --all-features -- -D warnings (final) | Win11, user | PASS | D:/rust/p02c-clippy.log |  |

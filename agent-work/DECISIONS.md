@@ -206,3 +206,13 @@
 - Trade-offs: (1) the resolver's fragment matching is only exercised for dependency closure, not primary selection; (2) 16 MB stack is generous but safe for debug builds with large futures; (3) Box::pin adds a heap allocation per plan call.
 - Evidence/tests: 11 resolver tests + stack overflow diagnosis (D:/rust/p08diag-status.log).
 - Revisit condition: if CI reports stack overflow on other arms, box their futures too; if the resolver's fragment matching needs arch filtering for the closure, add it.
+
+## DEC-021: Detection is strictly read-only with kind-prefix reuse matching
+- Date: 2026-11-22
+- Phase: P09
+- Context: Spec 07 section 4 requires the reuse planner to distinguish ReusableExact/ReusableWithAdditions/Incompatible/Unknown; the naive approach checks only the detected toolchain's own validation checks (which would give false positives when the required capability belongs to a different kind).
+- Decision: (1) all detection functions are strictly read-only (is_file/is_dir/read_dir only); (2) plan_reuse compares each required capability's prefix against the detected kind's namespace before consulting validation results - a mismatch is Incompatible regardless of the detected toolchain's own health; (3) unit tests use temp-dir fixtures, never PATH scanning.
+- Why: prevents a false ReusableExact when a user points the detector at a Windows SDK root and asks for MSVC capabilities.
+- Trade-offs: the planner does not yet handle cross-kind reuse (e.g. SDK root serving the SDK part of an MSVC-only capability set) - that is the plan integration's job.
+- Evidence/tests: reuse_planner_incompatible_for_wrong_kind (SDK root + MSVC capability = Incompatible).
+- Revisit condition: cross-kind reuse planner (P10+).
