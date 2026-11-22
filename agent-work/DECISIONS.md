@@ -176,3 +176,13 @@
 - Trade-offs: pattern matching is exact-or-suffix (no mid-path globs) - deliberately conservative; {arch} expansion requires selected_arches to be provided or the rule cannot fire.
 - Evidence/tests: portable_prunes_telemetry_and_non_target_arch_libs_only (positive + negative fixtures), version_scoped_rules_skip_other_versions.
 - Revisit condition: per-package manifest evidence for additional rules; real-payload verification (opt-in).
+
+## DEC-018: CAS as an overlay store with CLI-managed import/GC (downloader layout unchanged)
+- Date: 2026-11-22
+- Phase: P06
+- Context: Spec 06 section 2.5 requires migration to be re-runnable and the per-version download layout to keep working; converting the downloader to CAS-native downloads touches receipts, extraction, bundle and every consumer.
+- Decision: the BlobStore is an overlay beside the existing caches - import_file ingests existing downloads (hash -> atomic publish -> source refs in redb), gc() sweeps blobs whose sources vanished (respecting pins and a retention window), and the cache CLI subcommand manages import/verify/gc. Downloader-native CAS writes and validator-aware Range resume stay future work (RISKS R-104).
+- Why: satisfies every P06 exit gate without touching the install path; blobs on disk survive index corruption (index renamed aside, imports re-register).
+- Trade-offs: dedup happens only for imported files until the downloader publishes into CAS directly; pinning is manual until transaction integration.
+- Evidence/tests: 6 CAS tests incl. dedup, quarantine, GC dry-run/pins/retention/idempotence, re-runnable migration.
+- Revisit condition: plan/apply integration (P08) or downloader rework.

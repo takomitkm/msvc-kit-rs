@@ -62,3 +62,7 @@ lib unittests 218, bin unittests 7, integration 24+20+11+29+7+50+16+36+3+6+11+5+
 | P05-T03 | P05 | cargo clippy --all-targets --all-features -- -D warnings (final) | Win11, user | PASS | D:/rust/p02c-clippy.log |  |
 | P05-T04 | P05 | minimal profile compile/link acceptance | - | NOT_RUN | agent-work/PHASES/P05-pruning.md | opt-in T5: requires a real installed toolchain; minimal profile is rule-free by construction |
 | P05-T05 | P05 | real-payload prune verification | - | NOT_RUN | agent-work/PHASES/P05-pruning.md | telemetry/arch rules validated on synthetic trees; real-MSVC verification is opt-in |
+| P06-T01 | P06 | cargo test --all-features --no-fail-fast (final) | Win11, user | PASS | D:/rust/p02c-test.log | 697 passed / 0 failed / 7 ignored; adds 6 CAS tests (dedup, quarantine, GC dry-run/pins/retention/idempotence, re-runnable migration, digest validation) |
+| P06-T02 | P06 | cargo fmt --all -- --check (final) | Win11, user | PASS | D:/rust/p02c-fmt.log |  |
+| P06-T03 | P06 | cargo clippy --all-targets --all-features -- -D warnings (final) | Win11, user | PASS | D:/rust/p02c-clippy.log |  |
+| P06-T04 | P06 | Windows sync_all discovery | Win11, user | PASS (after fix) | D:/rust/p02c-test.log history | sync_all on a read-only handle fails with Access Denied on Windows; partial-file fsync now opens in write mode |

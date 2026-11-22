@@ -33,6 +33,12 @@ P00 COMPLETE (b784452). P01 COMPLETE (448f877). P02 COMPLETE (21e3603). P03 COMP
 - `src/installer/mod.rs`, `src/lib.rs`: module registration + re-exports
 - `agent-work/PHASES/P04-msi-feasibility.md`: feasibility report
 
+## Files changed (P06)
+- `src/installer/cas.rs`: new public module (BlobStore, pins, GC)
+- `src/bin/msvc-kit.rs`: cache subcommand
+- `src/installer/mod.rs`, `src/lib.rs`: registration + re-exports
+- `agent-work/PHASES/P06-cas-cache.md`: phase report
+
 ## Files changed (P05)
 - `src/installer/pruning.rs`: new public module (profiles, rules schema, planner, executor)
 - `src/installer/transaction.rs`: prune_staged (journal integration)
@@ -49,9 +55,9 @@ P00 COMPLETE (b784452). P01 COMPLETE (448f877). P02 COMPLETE (21e3603). P03 COMP
 - `agent-work/*`: P03 report
 
 ## Tests
-- PASS: `cargo fmt --all -- --check` (D:\rust\p02c-fmt.log, final P05 round)
+- PASS: `cargo fmt --all -- --check` (D:\rust\p02c-fmt.log, final P06 round)
 - PASS: `cargo clippy --all-targets --all-features -- -D warnings` (D:\rust\p02c-clippy.log)
-- PASS: `cargo test --all-features --no-fail-fast` — 691 passed / 0 failed / 7 ignored (D:\rust\p02c-test.log)
+- PASS: `cargo test --all-features --no-fail-fast` — 697 passed / 0 failed / 7 ignored (D:\rust\p02c-test.log)
 - NOT_RUN: minimal-profile compile/link acceptance (opt-in real-payload test; minimal profile is rule-free by construction)
 - PASS: `cargo test --doc` — 23 passed; `cargo doc` -D warnings (D:\rust\p02c-test-doc.log, p02c-doc.log)
 - P02 records (p02c-*.log) retained in TEST-RESULTS.md
