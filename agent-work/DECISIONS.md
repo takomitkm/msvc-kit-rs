@@ -166,3 +166,13 @@
 - Trade-offs: users cannot select a backend from the CLI yet (library callers can); native remains a documented, tested-as-error path.
 - Evidence/tests: msi backend suite 10/10; feasibility report lists enablement criteria.
 - Revisit condition: parity fixtures approved, or the options-builder lands (P07+).
+
+## DEC-017: Pruning placeholder semantics and conservative built-in rule set
+- Date: 2026-11-22
+- Phase: P05
+- Context: The spec example patterns use Host{host} (double-prefix bug) and {vctools} for SDK lib paths (wrong version namespace); {arch} must expand to every architecture the plan did NOT select, which requires the planner to know selected arches.
+- Decision: placeholders are {vctools}, {sdk}, {hostdir} (full HostX64 form), {target}, {arch} (non-selected arches from context.selected_arches) and ** suffix wildcards; the built-in portable profile ships exactly three evidence-backed rules (vctip.exe, VisualStudio.Telemetry.dll, non-target-arch um/ucrt libs) scoped to the 14 toolset family; minimal ships zero rules until evidence exists; custom profiles load user TOML.
+- Why: matches spec 06 section 1.2/1.4 (telemetry removal is portablemsvc-evidenced; PDB/DIA/debug-CRT/Auxiliary are explicit non-rules; rules must be version-scoped and auditable).
+- Trade-offs: pattern matching is exact-or-suffix (no mid-path globs) - deliberately conservative; {arch} expansion requires selected_arches to be provided or the rule cannot fire.
+- Evidence/tests: portable_prunes_telemetry_and_non_target_arch_libs_only (positive + negative fixtures), version_scoped_rules_skip_other_versions.
+- Revisit condition: per-package manifest evidence for additional rules; real-payload verification (opt-in).

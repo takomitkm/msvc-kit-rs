@@ -57,3 +57,8 @@ lib unittests 218, bin unittests 7, integration 24+20+11+29+7+50+16+36+3+6+11+5+
 | P04-T04 | P04 | cargo test --all-features --no-fail-fast (final) | Win11, user | PASS | D:/rust/p02c-test.log | 686 passed / 0 failed / 7 ignored |
 | P04-T05 | P04 | cargo test --doc + cargo doc -D warnings (final) | Win11, user | PASS | D:/rust/p02c-test-doc.log, p02c-doc.log |  |
 | P04-T06 | P04 | real-msi msiexec /a acceptance | - | NOT_RUN | agent-work/PHASES/P04-msi-feasibility.md | opt-in T5; needs user-approved fixture store (spec B5/B6) |
+| P05-T01 | P05 | cargo test --all-features --no-fail-fast (final) | Win11, user | PASS | D:/rust/p02c-test.log | 691 passed / 0 failed / 7 ignored; adds 5 pruning tests (profiles, TOML schema, execution, version scoping, negative fixtures) |
+| P05-T02 | P05 | cargo fmt --all -- --check (final) | Win11, user | PASS | D:/rust/p02c-fmt.log |  |
+| P05-T03 | P05 | cargo clippy --all-targets --all-features -- -D warnings (final) | Win11, user | PASS | D:/rust/p02c-clippy.log |  |
+| P05-T04 | P05 | minimal profile compile/link acceptance | - | NOT_RUN | agent-work/PHASES/P05-pruning.md | opt-in T5: requires a real installed toolchain; minimal profile is rule-free by construction |
+| P05-T05 | P05 | real-payload prune verification | - | NOT_RUN | agent-work/PHASES/P05-pruning.md | telemetry/arch rules validated on synthetic trees; real-MSVC verification is opt-in |
