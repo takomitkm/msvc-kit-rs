@@ -1,79 +1,58 @@
 # Progress
 
 ## Current phase
-P04 — MSI Backend abstraction + Native feasibility (COMPLETE, pending push + CI verification)
+**PAUSED after P07** (user instruction, 2026-11-22: complete the current phase, then stop; do not start P08+).
 
 ## Status
-P00 COMPLETE (b784452). P01 COMPLETE (448f877). P02 COMPLETE (21e3603). P03 COMPLETE (67d87dc) — all CI success. P04 pending push.
+P00-P07 all COMPLETE, each pushed with CI workflow success on the phase HEAD
+(see `INTERIM-STATUS.md` for the phase/commit table and the pause reason).
 
-## Completed (P03)
-- [x] Transaction workspace (.msvc-kit/transactions/<tx>) with journal.jsonl, per-package staging, backup dir
-- [x] Merge with cross-package collision detection (deterministic order)
-- [x] Commit pre-pass: Create/Skip/ReplaceOwned/UnownedConflict (refuse before mutation)
-- [x] Write-ahead journal + hash-gated per-path rollback + ownership/manifest revert
-- [x] recover_pending (idempotent) wired into both extract-and-finalize paths
-- [x] InstalledManifest schema (installed-manifest.v1) with golden tests
-- [x] 9 transaction tests incl. 11-point fault-injection matrix; found and fixed a real backup-restore data-loss bug
-- [x] Full verification green: fmt/clippy/681 tests/0 failed + doc
+- P00 b784452 - baseline audit + baseline repair
+- P01 448f877 - path security + safe extractors + marker v2
+- P02 21e3603 - InstallPlan + plan/apply CLI
+- P03 67d87dc - journaled file-level transactions
+- P04 a032e24 - MSI backend abstraction + feasibility report
+- P05 6bc0a51 - pruning engine
+- P06 f7fc575 - CAS blob cache
+- P07 d493133 - lock v2 + installed-tree verification
 
-## Completed (P04)
-- [x] MsiBackendPreference (auto/msiexec/native/fallback) — native+fallback report the parity gate
-- [x] MsiProcessRunner seam + SystemRunner; MsiexecBackend with /a /qn TARGETDIR /L*V, 1618 retry budget, code-specific guidance
-- [x] extract_msi_sync delegates to the backend (duplicate retry loop removed)
-- [x] 6 fake-runner tests (arg shape, no /i, retry counts/delays, diagnostics, spawn failure)
-- [x] Native MSI feasibility report: parity gate unmet (no legal fixtures) -> native stays disabled (agent-work/PHASES/P04-msi-feasibility.md)
+## Completed (P07, the final phase of this run)
+- [x] ToolchainLockV2 (msvc-kit.toolchain-lock.v2): flattened v1 core + provenance (source-pinned/selection-only) + pruning records + installed-manifest digest + CAB relations
+- [x] Provenance/receipt contradiction validation
+- [x] verify_installed_tree: re-hash every entry; Modified/Missing/Extra diffs; control dirs skipped; never deletes
+- [x] detect_installed_mutation + load_installed_manifest (latest or by id)
+- [x] InstalledManifest made public (verify contract)
+- [x] 6 tests; full verification green (703 passed / 0 failed / 7 ignored)
 
-## Remaining
-- [ ] push P04 commits; verify CI workflow conclusion=success on the pushed sha
-- [ ] P05 (next): Pruning Engine (rule schema, profiles, staging-only execution, removed-file receipts)
-
-## Files changed (P04)
-- `src/installer/msi.rs`: new (preference enum, runner seam, msiexec backend + tests)
-- `src/installer/extractor.rs`: extract_msi_sync delegates to the backend; format_msiexec_failure folded into backend diagnostics
-- `src/installer/mod.rs`, `src/lib.rs`: module registration + re-exports
-- `agent-work/PHASES/P04-msi-feasibility.md`: feasibility report
+## Remaining (NOT started; user paused before P08)
+- [ ] P08 - Build Profile / Dependency Resolver
+- [ ] P09 - Detection / Reuse
+- [ ] P10 - Provider API
+- [ ] P11 - Full regression / docs / release readiness / FINAL_REPORT.md
 
 ## Files changed (P07)
 - `src/installer/lock_v2.rs`: new public module (v2 schema, verify_installed_tree, mutation detection)
 - `src/toolchain_lock.rs`: LOCK_V2_SCHEMA const
 - `src/installer/contracts.rs`: InstalledManifest public
 - `src/installer/mod.rs`, `src/lib.rs`: registration + re-exports
-- `src/downloader/common_tests.rs`: flaky test annotated (pre-existing parallel-load flake, passes in isolation)
-- `agent-work/PHASES/P07-lock-v2.md`: phase report
+- `src/downloader/common_tests.rs`: flaky test annotated (pre-existing parallel-load flake, passes twice in isolation)
+- `agent-work/INTERIM-STATUS.md`: pause record
 
-## Files changed (P06)
-- `src/installer/cas.rs`: new public module (BlobStore, pins, GC)
-- `src/bin/msvc-kit.rs`: cache subcommand
-- `src/installer/mod.rs`, `src/lib.rs`: registration + re-exports
-- `agent-work/PHASES/P06-cas-cache.md`: phase report
-
-## Files changed (P05)
-- `src/installer/pruning.rs`: new public module (profiles, rules schema, planner, executor)
-- `src/installer/transaction.rs`: prune_staged (journal integration)
-- `src/installer/mod.rs`: *_with_profile variants
-- `src/bin/msvc-kit.rs`: --prune-profile flag
-- `src/lib.rs`: pruning re-exports
-- `agent-work/PHASES/P05-pruning.md`: phase report
-
-## Files changed (P03)
-- `src/installer/transaction.rs`: new public module (workspace, journal, merge, commit, rollback, recovery, fault hook)
-- `src/installer/mod.rs`: extract_and_finalize_* wired through transactions; probe visibility
-- `src/installer/contracts.rs`: InstalledManifest schema + golden test
-- `tests/transaction_tests.rs`: fault matrix + exit-gate scenarios (9 tests)
-- `agent-work/*`: P03 report
-
-## Tests
-- PASS: `cargo fmt --all -- --check` (D:\rust\p02c-fmt.log, final P07 round)
-- PASS: `cargo clippy --all-targets --all-features -- -D warnings` (D:\rust\p02c-clippy.log)
-- PASS: `cargo test --all-features --no-fail-fast` — 703 passed / 0 failed / 7 ignored (D:\rust\p02c-test.log)
-- NOT_RUN: minimal-profile compile/link acceptance (opt-in real-payload test; minimal profile is rule-free by construction)
-- PASS: `cargo test --doc` — 23 passed; `cargo doc` -D warnings (D:\rust\p02c-test-doc.log, p02c-doc.log)
-- P02 records (p02c-*.log) retained in TEST-RESULTS.md
+## Tests (final P07 round)
+- PASS: `cargo fmt --all -- --check` (D:/rust/p02c-fmt.log)
+- PASS: `cargo clippy --all-targets --all-features -- -D warnings` (D:/rust/p02c-clippy.log)
+- PASS: `cargo test --all-features --no-fail-fast` - 703 passed / 0 failed / 7 ignored (D:/rust/p02c-test.log)
+- PASS: `cargo test --doc` - 23 passed; `cargo doc` -D warnings (D:/rust/p02c-test-doc.log, p02c-doc.log)
+- Known flake (pre-existing, annotated): `a_corrupted_first_transfer_is_refetched_and_succeeds` - fails rarely under full-suite parallel load; passes twice in isolation.
 
 ## Risks / regressions
-- Transaction staging + commit adds journal fsyncs per file event (I/O cost accepted).
-- Legacy roots are adopted (backup + journal) rather than refused — one-time migration path.
-- Recovery cannot restore bytes if the backup was lost in the pre-fix journal format; the format bug was caught by the fault matrix and fixed before shipping.
+- See `agent-work/RISKS.md` and `agent-work/INTERIM-STATUS.md`.
+- rustfmt drift between CI and the build machine caused two style-only fix commits (6bc0a51, f7fc575); the CI-failing shas e77657c and 6087ebb were repaired same-session.
 
-## Next exact action
-Commit P04 as `feat(installer)` (MSI backend abstraction + hardened wrapper) and `docs(agent-work)` (feasibility report); push; poll CI for conclusion=success. Then P05: pruning rule schema (msvc-kit.pruning-rules.v1), full/portable/minimal profiles, staging-only execution wired into the transaction journal, removed-file receipt records, and positive/negative/version fixtures per rule.
+## Next exact action (when work resumes)
+Start P08 - Build Profile / Dependency Resolver. Prepared input: the real VS
+17.14 package manifest dependency schema was sampled on the build machine
+(`{ "<package-id>": { "version": "...", "behaviors": "..." } }` free-form
+shapes) - the resolver must validate dependency shapes strictly (unknown
+shapes error, never silently ignored, spec 04 section 4.3). Then P09 detection, P10
+provider API, P11 full regression + docs + FINAL_REPORT.md.
