@@ -21,6 +21,14 @@ All cargo commands were executed on the school machine (Win11-HV1, cargo 1.100.0
 | P00-T14 | P00 | fix verification: `cargo test --doc` | Win11, user | PASS | D:\rust\p00c-test-doc.log | 23 passed |
 | P00-T15 | P00 | clippy re-check on fixed tree | Win11, user | PASS | D:\rust\p00d-clippy.log | exit 0 |
 | P00-T16 | P00 | `cargo test --all-features --no-fail-fast` ignored-test audit | — | NOT_RUN | `tests/e2e_tests.rs:431-472` | 4 network-heavy e2e + 1 signed-catalog cache test + 2 preview-dir tests are `#[ignore]` by default; per spec B6 they stay opt-in; not executed in P00 |
+| P01-T01 | P01 | `cargo test --all-features --test installer_safety_tests` (round 1, pre-implementation, tests-only patch) | Win11, user | FAIL (intended) | D:\rust\p01a-test.log | 4 passed / 19 failed — traversal escaped, ADS created, reserved names written, conflicts overwritten, legacy marker skipped extraction: suite proven to detect the bugs |
+| P01-T02 | P01 | `cargo test --all-features --test installer_safety_tests` (round 2, post-implementation) | Win11, user | PASS | D:\rust\p01b-safety.log | 24/24 (incl. empty-dir policy added after clippy dead-code note) |
+| P01-T03 | P01 | `cargo fmt --all -- --check` (round 3, after fmt pass) | Win11, user | PASS | D:\rust\p01c-fmt.log | |
+| P01-T04 | P01 | `cargo clippy --all-targets --all-features -- -D warnings` (round 3) | Win11, user | PASS | D:\rust\p01c-clippy.log | round-2 clippy found dead_code (contracts, expected) + cloned_ref_to_slice_refs; fixed |
+| P01-T05 | P01 | `cargo test --all-features --no-fail-fast` (round 3) | Win11, user | PASS | D:\rust\p01c-test.log | 29 suites, 660 passed / 7 ignored / 0 failed; includes path_safety unit matrix and contracts golden tests |
+| P01-T06 | P01 | `cargo test --doc` (round 3) | Win11, user | PASS | D:\rust\p01c-test-doc.log | 23 passed |
+| P01-T07 | P01 | `cargo doc --no-deps --document-private-items` + `RUSTDOCFLAGS=-D warnings` (round 3) | Win11, user | PASS | D:\rust\p01c-doc.log | |
+| P01-T08 | P01 | `cargo test --all-features --no-fail-fast` (round 2 intermediate) | Win11, user | PASS | D:\rust\p01b-test.log | suite green before fmt normalization; round 3 re-verified after fmt-only diff |
 
 ## Suite totals after P00 fixes (P00-T13)
 

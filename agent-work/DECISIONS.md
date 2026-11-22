@@ -53,3 +53,46 @@
 - Trade-offs: P00's diff is not literally zero; the phase report lists both commits explicitly.
 - Evidence/tests: see DEC-001/DEC-002 evidence.
 - Revisit condition: user objection to including repairs in P00.
+
+## DEC-006: Add `unicode-normalization 0.1` dependency for archive collision keys
+- Date: 2026-11-22
+- Phase: P01
+- Context: Spec 08 §3 requires rejecting paths that collide after Unicode normalization; Windows does not normalize file names, but two entries spelling the same name in NFC and NFD plus differing bytes must not silently become one file. Implementing NFC without tables is not credible.
+- Dependency review (spec 10 §6): `unicode-normalization` 0.1.26 (latest is 0.1.x; "0.2" does not exist on crates.io); purpose: NFC normalization in `SafeRelativePath::collision_key`; existing dependency could not do it (serde/toml/etc. have no normalization); license MIT/Apache-2.0; MSRV well below 1.100; actively maintained (used by idna/regex ecosystem); no default features, pure std, adds ~two table modules (~200 KB source, no transitive deps); compiles on Windows (verified) and Linux (std-only); parser risk none (no parsing of untrusted input beyond Unicode tables); testable with real fixtures (done — NFC/NFD collision test).
+- Decision: add the dependency; collision key = ` NFC(name).to_lowercase()`.
+- Why: the only credible way to satisfy the spec matrix without hand-rolled Unicode.
+- Trade-offs: one more dependency in the lockfile; NFC approximation of Windows upcase tables (documented limitation — full Windows case folding is not implemented by any mainstream Rust crate either).
+- Evidence/tests: `cargo test` green incl. `zip_unicode_normalization_duplicate_paths_with_different_bytes_are_rejected`; Cargo.lock committed.
+- Revisit condition: if MSRV/size pressure appears, or Windows ships normalization-aware APIs.
+
+## DEC-007: Safety rejection policy — validate-all-then-write, content collisions resolved in the validation pass
+- Date: 2026-11-22
+- Phase: P01
+- Context: Spec P01 exit gate demands "安全拒绝时 staging 外零变更". With no staging yet (P03), extraction still writes into the live root, so the only way to honor the gate is to fully validate an archive (names, symlink modes, size caps, file/dir conflicts, duplicate-key content identity) before the first write. The zip reader already refuses byte-identical duplicate names at open; case-fold/NFC duplicates must therefore be compared by content.
+- Options considered: (a) detect collisions mid-write (rejection after partial writes); (b) hash every ZIP entry during validation and decide dedupe/conflict upfront (archive read twice); (c) defer duplicate handling to P03 transactions.
+- Decision: (b) for ZIP — pass 1 hashes every entry (streaming SHA256) and keeps key→(first path, hash); equal bytes skip the duplicate, differing bytes reject the whole archive before any write; pass 2 writes only survivors. CAB rejects duplicate names outright (the cab crate resolves entries by name, so duplicates are unreadable unambiguously). The per-entry hashes computed in pass 1 are exactly what P03's InstalledManifest needs next.
+- Why: strongest guarantee available pre-transaction; the extra read pass is I/O on archives that must be decompressed once more anyway for extraction.
+- Trade-offs: double decompression I/O for ZIP extraction; CAB duplicate policy is "reject" rather than "dedupe" (documented in tests).
+- Evidence/tests: all rejection tests assert byte-identical target trees; full suite green (D:\rust\p01c-test.log).
+- Revisit condition: measured extraction overhead on real payloads justifies a staged single-pass design in P03.
+
+## DEC-008: Extraction marker v2 with legacy v1 ignored-and-upgraded
+- Date: 2026-11-22
+- Phase: P01
+- Context: Spec P01: "现有 marker 不再作为唯一提取完成凭据；旧 marker 要安全地 invalid/legacy handle". v1 markers (path+size+mtime fingerprint, body `ok`) prove nothing about source content and their write failures were silently ignored.
+- Options considered: (a) keep v1 names but verify output tree on hit (expensive, still P03 territory); (b) v2 JSON markers keyed by source SHA256; v1 markers never match the new name pattern, so the first post-upgrade run re-extracts and upgrades.
+- Decision: (b). Marker name `<name>-v2-<sha256(name|sha)[:16]>.done`, body = JSON `{schema, source_sha256, source_name}`; skip requires schema + digest match; writes via `storage::atomic_write`; write failure logs a warning and only costs a re-extraction (never a false skip).
+- Why: makes the skip decision depend on source content identity; legacy markers are handled safely (ignored, preserved on disk).
+- Trade-offs: one full-hash pass per archive per install run to compute the marker name (accepted; can be cached in P06); one-time re-extraction after upgrade.
+- Evidence/tests: `extraction_markers_record_source_sha256`, `legacy_ok_markers_are_ignored_and_upgraded`.
+- Revisit condition: P03 replaces markers with receipts/InstalledManifest; marker code then becomes a compatibility shim.
+
+## DEC-009: Data contracts stay `pub(crate)` with module-level dead_code allow
+- Date: 2026-11-22
+- Phase: P01
+- Context: Spec P01 asks for minimal schemas "可先内部" (may be internal first). Publishing them now would freeze shapes before P02/P03 wire them to real behavior, and `MsvcKitError` variants for the new failure classes (spec 03 §6) are also deferred to avoid breaking external exhaustive matches.
+- Decision: `src/installer/contracts.rs` is `pub(crate)` with `#![allow(dead_code)]` and a comment stating the allow expires when P02 consumers land; path-safety errors surface as contextual `MsvcKitError::Other` messages for now.
+- Why: additive-only public API review passes (zero public surface change in P01).
+- Trade-offs: a temporary allow lint; revisited at P02.
+- Evidence/tests: clippy `-D warnings` green; golden tests cover the full shape.
+- Revisit condition: P02 install-plan CLI lands.
