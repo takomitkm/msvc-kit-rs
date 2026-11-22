@@ -156,3 +156,13 @@
 - Trade-offs: recovery cannot restore bytes if the backup file was lost with the transaction dir in a pre-fix journal format - the fault matrix caught exactly this class (journal/backup name case mismatch) and the format was fixed before shipping.
 - Evidence/tests: fault_injection_matrix (11 points), backup_fault_points, explicit_rollback tests.
 - Revisit condition: pruning or CAS operations join the journal (P05/P06).
+
+## DEC-016: MSI backend abstraction without a CLI flag; native stays behind the parity gate
+- Date: 2026-11-22
+- Phase: P04
+- Context: The roadmap asks for an auto/msiexec/native/fallback abstraction and fake-runner tests; native parity cannot be met without user-approved real fixtures (spec 05 section 3, spec 10 section 2-3). Adding an msi-backend field to DownloadOptions would break external struct literals (I-013/B7).
+- Decision: ship the preference enum and runner seam as a public library API (msvc_kit::installer::msi / lib re-exports) with native+fallback returning an explicit parity-gate error; extract_msi_sync delegates to the backend internally; no CLI flag or DownloadOptions field yet.
+- Why: removes the duplicated retry loop, makes the wrapper testable per spec 08 section 8, and defers the option-surface decision to the options-builder strategy phase.
+- Trade-offs: users cannot select a backend from the CLI yet (library callers can); native remains a documented, tested-as-error path.
+- Evidence/tests: msi backend suite 10/10; feasibility report lists enablement criteria.
+- Revisit condition: parity fixtures approved, or the options-builder lands (P07+).

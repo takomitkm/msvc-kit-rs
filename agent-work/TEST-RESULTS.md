@@ -51,3 +51,9 @@ lib unittests 218, bin unittests 7, integration 24+20+11+29+7+50+16+36+3+6+11+5+
 | P03-T04 | P03 | cargo test --all-features --no-fail-fast (final) | Win11, user | PASS | D:/rust/p02c-test.log | 681 passed / 0 failed / 7 ignored |
 | P03-T05 | P03 | cargo test --doc + cargo doc -D warnings (final) | Win11, user | PASS | D:/rust/p02c-test-doc.log, p02c-doc.log |  |
 | P03-T06 | P03 | fault-matrix bug verification (backup-name case mismatch) | Win11, user | PASS (after fix) | D:/rust/p03a-test.log history | matrix caught journal-lowercase vs backup-original-case mismatch that lost original bytes on recovery; fixed and re-verified |
+| P04-T01 | P04 | cargo test --all-features --lib msi (backend suite) | Win11, user | PASS | D:/rust/p04a-msi.log | 10/10 incl. 6 fake-runner tests: arg shape/no-/i, 1618 retry counts+delays, exhausted retries, 1603/1619/1620 diagnostics with log path, spawn failure, preference parse/resolve |
+| P04-T02 | P04 | cargo fmt --all -- --check (final) | Win11, user | PASS | D:/rust/p02c-fmt.log |  |
+| P04-T03 | P04 | cargo clippy --all-targets --all-features -- -D warnings (final) | Win11, user | PASS | D:/rust/p02c-clippy.log |  |
+| P04-T04 | P04 | cargo test --all-features --no-fail-fast (final) | Win11, user | PASS | D:/rust/p02c-test.log | 686 passed / 0 failed / 7 ignored |
+| P04-T05 | P04 | cargo test --doc + cargo doc -D warnings (final) | Win11, user | PASS | D:/rust/p02c-test-doc.log, p02c-doc.log |  |
+| P04-T06 | P04 | real-msi msiexec /a acceptance | - | NOT_RUN | agent-work/PHASES/P04-msi-feasibility.md | opt-in T5; needs user-approved fixture store (spec B5/B6) |
