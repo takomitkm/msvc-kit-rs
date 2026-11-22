@@ -1,9 +1,10 @@
 name: CI
 
-# Main CI workflow - runs on manual trigger or workflow_call.
+# Main CI workflow - runs on push to main, manual trigger or workflow_call.
 # PR checks are handled by pr-checks.yml.
-# Main branch pushes are handled by release.yml.
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
   workflow_call:
 
