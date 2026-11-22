@@ -1,7 +1,7 @@
 # Progress
 
 ## Current phase
-**PAUSED after P07** (user instruction, 2026-11-22: complete the current phase, then stop; do not start P08+).
+P08 — Build Profile / Dependency Resolver (IN_PROGRESS; resumed 2026-11-22 with user approval to continue P08-P11).
 
 ## Status
 P00-P07 all COMPLETE, each pushed with CI workflow success on the phase HEAD
@@ -24,8 +24,8 @@ P00-P07 all COMPLETE, each pushed with CI workflow success on the phase HEAD
 - [x] InstalledManifest made public (verify contract)
 - [x] 6 tests; full verification green (703 passed / 0 failed / 7 ignored)
 
-## Remaining (NOT started; user paused before P08)
-- [ ] P08 - Build Profile / Dependency Resolver
+## Remaining
+- [ ] P08 - Build Profile / Dependency Resolver (in progress)
 - [ ] P09 - Detection / Reuse
 - [ ] P10 - Provider API
 - [ ] P11 - Full regression / docs / release readiness / FINAL_REPORT.md
@@ -49,8 +49,8 @@ P00-P07 all COMPLETE, each pushed with CI workflow success on the phase HEAD
 - See `agent-work/RISKS.md` and `agent-work/INTERIM-STATUS.md`.
 - rustfmt drift between CI and the build machine caused two style-only fix commits (6bc0a51, f7fc575); the CI-failing shas e77657c and 6087ebb were repaired same-session.
 
-## Next exact action (when work resumes)
-Start P08 - Build Profile / Dependency Resolver. Prepared input: the real VS
+## Next exact action
+P08: write failing resolver fixture tests (DAG/cycle/conflict/unknown-shape/determinism/profiles), then implement installer::resolver (strict dependency schema, closure, stable topo sort) and wire plan integration. Prepared input: the real VS
 17.14 package manifest dependency schema was sampled on the build machine
 (`{ "<package-id>": { "version": "...", "behaviors": "..." } }` free-form
 shapes) - the resolver must validate dependency shapes strictly (unknown
