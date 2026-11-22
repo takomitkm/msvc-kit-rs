@@ -1,46 +1,54 @@
 # Progress
 
 ## Current phase
-P01 — Data contracts + Path Security (COMPLETE, pending push + CI verification)
+P02 — Canonical InstallPlan / CLI Dry Run (COMPLETE, pending push + CI verification)
 
 ## Status
-P00 COMPLETE (b784452, CI success). P01 COMPLETE pending push.
+P00 COMPLETE (b784452, CI success). P01 COMPLETE (448f877, CI success). P02 COMPLETE pending push.
 
-## Completed (P01)
-- [x] Unified `SafeRelativePath` (Windows semantics, host-independent) + `PathOccupancy` conflict detection + size caps (`src/installer/path_safety.rs`)
-- [x] VSIX/ZIP and CAB extractors wired to the safety layer: validate-all-then-write, symlink rejection, content-hash duplicate resolution (DEC-007)
-- [x] Spec 08 §3 test matrix as `tests/installer_safety_tests.rs` (24 integration tests; round-1 run against unfixed code exposed 19 real failures)
-- [x] Marker v2 content identity + legacy v1 ignored-and-upgraded (DEC-008)
-- [x] Minimal internal schemas + golden tests: InstallPlan / InstallReceipt / OwnershipIndex / TransactionJournal (`src/installer/contracts.rs`, DEC-009)
-- [x] Dependency review + addition of `unicode-normalization 0.1` (DEC-006)
-- [x] Public API compatibility review: zero public surface change
-- [x] Full verification green: fmt, clippy `-D warnings`, 660 tests / 0 failed (+7 network-ignored), 23 doc tests, rustdoc `-D warnings`
+## Completed (P02)
+- [x] `ManifestIdentity` + `VsManifest::fetch_with_identity` (manifest digest exposure)
+- [x] Public `InstallPlanDocument` schema + `create_install_plan` planner (cache probing, per-payload actions, blocking conflicts, disk estimates)
+- [x] Stable `plan_id` (SHA256 over canonical form without created_at) + tamper detection
+- [x] `plan` CLI (text/json, --output) + `apply` CLI (verify -> conflicts -> revalidation -> pinned execution)
+- [x] Stale detection: manifest digest change, cached payload digest drift, free-space drop
+- [x] Channel selector accepts explicit http(s) URLs (custom channels, URL-derived cache slug)
+- [x] 7 mockito plan tests + 3 CLI smoke tests; full suite 671 passed / 0 failed
 
 ## Remaining
-- [ ] push P01 commits; verify CI workflow conclusion=success on the pushed sha
-- [ ] P02 (next): canonical InstallPlan + `plan` CLI + stable plan_id + stale detection
+- [ ] push P02 commits; verify CI workflow conclusion=success on the pushed sha
+- [ ] P03 (next): file-level staging / transaction journal / recovery
 
-## Files changed (P01)
-- `src/installer/path_safety.rs`: new — resolver, occupancy, caps, unit tests
+## Files changed (P02)
+- `src/downloader/manifest.rs`: ManifestIdentity + fetch_with_identity (+ test call sites)
+- `src/installer/plan.rs`: new public plan module (document, planner, plan_id, revalidation)
+- `src/installer/contracts.rs`: plan types moved out; internal receipt/ownership/journal schemas remain
+- `src/bin/msvc-kit.rs`: plan/apply subcommands
+- `src/vs_channel.rs`: URL channel selector + URL-derived cache slug
+- `src/lib.rs`, `src/installer/mod.rs`: re-exports
+- `Cargo.toml`: windows-sys Win32_Storage_FileSystem feature
+- `tests/plan_tests.rs`, `tests/cli_exit_code_tests.rs`: new tests
+- `agent-work/*`: P02 report
+
+## Files changed (P01, retained for reference)
+- `src/installer/path_safety.rs`: resolver, occupancy, caps, unit tests
 - `src/installer/extractor.rs`: two-pass guarded VSIX/CAB extraction
-- `src/installer/mod.rs`: marker v2 + module registration
-- `src/installer/contracts.rs`: new — four schema documents + golden tests
-- `tests/installer_safety_tests.rs`: new — spec 08 §3 matrix for both extractors
-- `Cargo.toml`/`Cargo.lock`: unicode-normalization 0.1
-- `agent-work/*`: reports updated
+- `src/installer/mod.rs`: marker v2
+- `tests/installer_safety_tests.rs`: spec 08 §3 matrix
 
 ## Tests
-- PASS: `cargo fmt --all -- --check` (D:\rust\p01c-fmt.log)
-- PASS: `cargo clippy --all-targets --all-features -- -D warnings` (D:\rust\p01c-clippy.log)
-- PASS: `cargo test --all-features --no-fail-fast` — 29 suites, 660 passed / 0 failed / 7 ignored (D:\rust\p01c-test.log)
-- PASS: `cargo test --doc` — 23 passed (D:\rust\p01c-test-doc.log)
-- PASS: `cargo doc --no-deps --document-private-items` + `RUSTDOCFLAGS=-D warnings` (D:\rust\p01c-doc.log)
-- FAIL (intentional, pre-implementation): 19/23 safety tests vs unfixed extractor (D:\rust\p01a-test.log) — proof the suite detects the bugs
+- PASS: `cargo fmt --all -- --check` (D:\rust\p02c-fmt.log)
+- PASS: `cargo clippy --all-targets --all-features -- -D warnings` (D:\rust\p02c-clippy.log)
+- PASS: `cargo test --all-features --no-fail-fast` — 671 passed / 0 failed / 7 ignored (D:\rust\p02c-test.log)
+- PASS: `cargo test --doc` — 23 passed (D:\rust\p02c-test-doc.log)
+- PASS: `cargo doc --no-deps --document-private-items` + `RUSTDOCFLAGS=-D warnings` (D:\rust\p02c-doc.log)
+- FLAKE (pre-existing, load-dependent): `downloader::common_tests::a_corrupted_first_transfer_is_refetched_and_succeeds` failed once under full-suite parallel load; passes in isolation and in the two following full runs (upstream test from c0b9e0e; no download-path changes in P02)
+- P01 records (D:\rust\p01c-*.log) retained in TEST-RESULTS.md
 
 ## Risks / regressions
-- Extraction I/O doubles for ZIP (validation hashing) — accepted per DEC-007, revisited in P03.
-- One-time re-extraction after marker v2 rollout — idempotent.
-- Legacy v1 markers remain on disk untouched (harmless orphans).
+- Apply is not yet transactional — half-install risk (R-003) unchanged until P03; the plan pin check closes the silent-package-swap gap.
+- Disk estimates leave staging/backup/final as null (bounded confidence) until P03/P06 data exists.
+- Plan identity includes the normalized target root string; path-independent identity is deferred to P03 (root identity) / P08.
 
 ## Next exact action
-Commit P01 as `feat(installer)` (safety layer + extractors + markers + contracts) and `test(installer)` (safety suite) with `agent-work` docs; push; poll CI for conclusion=success. Then P02: read `DownloadPreview` reuse path, define canonical `InstallPlanDocument` fill-in (actions from resolved packages + cache state), stable `plan_id`, `plan` CLI subcommand with JSON output, and apply-side schema/hash verification.
+Commit P02 as `feat(plan)` (planner + CLI + manifest identity), `test(plan)` (plan tests), `docs(agent-work)`; push; poll CI for conclusion=success. Then P03: per-transaction workspace (.msvc-kit/transactions/<tx>), write-ahead journal using the P01 schemas, file-level backup/commit/rollback, recovery command, ownership index write-through, and fault-injection tests at the spec 08 §10 points.

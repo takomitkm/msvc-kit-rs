@@ -96,3 +96,33 @@
 - Trade-offs: a temporary allow lint; revisited at P02.
 - Evidence/tests: clippy `-D warnings` green; golden tests cover the full shape.
 - Revisit condition: P02 install-plan CLI lands.
+
+## DEC-010: Install plan document becomes public API; internal schemas stay pub(crate)
+- Date: 2026-11-22
+- Phase: P02
+- Context: The CLI (separate binary crate) can only see public library items, and the plan/apply commands must serialize the plan. The receipt/ownership/journal schemas still have no consumers (P03).
+- Decision: move InstallPlanDocument and its companion types from `installer::contracts` into a new public `installer::plan` module; keep the other three documents internal. `MsvcKitError` still unchanged (stale/conflict surfaced as contextual `Other` errors).
+- Why: additive public surface; avoids freezing the transaction-era schemas early.
+- Trade-offs: two modules for related documents until P03 merges them if needed.
+- Evidence/tests: golden round-trip tests in both modules; clippy -D warnings green.
+- Revisit condition: P03 transaction work lands.
+
+## DEC-011: Apply semantics for P02 - verify, revalidate, then execute through the existing pipeline pinned by the plan
+- Date: 2026-11-22
+- Phase: P02
+- Context: Roadmap P02 requires apply-side plan verification and stale detection, but the transactional installer is P03. The existing download pipeline (lock + downloader + P01 safe extractors + receipt recording) is the only execution path today.
+- Decision: apply = load/verify plan -> refuse blocking conflicts -> revalidate_plan (manifest digest, cached payload digests, free space) -> on stale fail with a StaleInstallPlan report -> otherwise execute with the plan's pinned selectors (never re-resolving latest), cross-check every downloaded payload against the plan pins before extraction, then extract and record receipts exactly like download.
+- Why: satisfies the P02 exit gate now; the P03 transaction manager takes over the execution stage without changing the verification protocol.
+- Trade-offs: apply is not yet transactional (half-installs on failure remain possible until P03 - risk R-003 unchanged); the pin check closes the silently-switched-packages gap.
+- Evidence/tests: plan_tests stale/conflict/pin tests; full suite green.
+- Revisit condition: P03 replaces execution internals.
+
+## DEC-012: Channel selector accepts explicit http(s) URLs with URL-derived cache slugs
+- Date: 2026-11-22
+- Phase: P02
+- Context: Plan/apply tests (and users targeting unpublished or mirrored channels) need to pin a channel by URL; the selector previously accepted only registry majors/years/auto.
+- Decision: parse_channel_selector returns a custom VsChannelSpec (major 0) for http(s) selectors; cache_slug derives a stable 12-hex suffix from the URL so custom channels cannot collide on cache files. The manifest trust chain (catalog digest vs. fresh channel bytes) applies unchanged.
+- Why: minimal escape hatch, additive, no behavior change for existing selectors.
+- Trade-offs: users can point at arbitrary servers; trust still comes from the fresh-channel digest + payload SHA256s, and HTTP is accepted for test fixtures only in practice.
+- Evidence/tests: plan tests all use the URL selector; vs_channel unit coverage.
+- Revisit condition: if a provider-API channel registry (P10) supersedes URL pinning.

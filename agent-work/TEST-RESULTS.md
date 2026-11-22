@@ -38,3 +38,10 @@ lib unittests 218, bin unittests 7, integration 24+20+11+29+7+50+16+36+3+6+11+5+
 
 - All 21 pre-fix failures (`cli_exit_code_tests` 17, `update_tests` 4) shared one root cause (P00-T08, P00-T09) and were repaired by the P00 baseline-repair commit `fix(tests)` — no test was deleted or weakened; all 24 originally-registered test functions still run (20 in cli suite incl. the same assertions, 9 in update suite).
 - The docs failure was repaired by escaping the placeholder in the doc comment; content unchanged.
+| P02-T01 | P02 | `cargo test --all-features --no-fail-fast` (round 3) | Win11, user | PASS | D:/rust/p02c-test.log | 671 passed / 0 failed / 7 ignored; adds plan_tests (7) + plan/apply CLI smoke (3) |
+| P02-T02 | P02 | `cargo fmt --all -- --check` (round 3) | Win11, user | PASS | D:/rust/p02c-fmt.log |  |
+| P02-T03 | P02 | `cargo clippy --all-targets --all-features -- -D warnings` (round 3) | Win11, user | PASS | D:/rust/p02c-clippy.log |  |
+| P02-T04 | P02 | `cargo test --doc` (round 3) | Win11, user | PASS | D:/rust/p02c-test-doc.log | 23 passed |
+| P02-T05 | P02 | `cargo doc` + `RUSTDOCFLAGS=-D warnings` (round 3) | Win11, user | PASS | D:/rust/p02c-doc.log |  |
+| P02-T06 | P02 | `cargo test --lib a_corrupted_first_transfer` (isolation rerun) | Win11, user | PASS | ssh transcript | full-suite failure earlier was a load-dependent parallel flake (pre-existing upstream test from c0b9e0e); not reproduced in the two following full runs |
+| P02-T07 | P02 | mockito fetch-count choreography audit | - | PASS | tests/plan_tests.rs `FetchCounts` | channel always fully fetched (no independent digest); vsman full once then 304-conditionals; asserts encode exact expectations |
