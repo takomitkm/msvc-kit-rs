@@ -126,3 +126,33 @@
 - Trade-offs: users can point at arbitrary servers; trust still comes from the fresh-channel digest + payload SHA256s, and HTTP is accepted for test fixtures only in practice.
 - Evidence/tests: plan tests all use the URL selector; vs_channel unit coverage.
 - Revisit condition: if a provider-API channel registry (P10) supersedes URL pinning.
+
+## DEC-013: Transaction design - per-package staging, in-memory merge, journal-protected file commit
+- Date: 2026-11-22
+- Phase: P03
+- Context: Spec 05 section 6 suggests a merged-tree directory; the current flow extracts one package per component (MSVC, SDK) per transaction, and spec I-002 forbids replacing the shared root.
+- Decision: extract each package into packages/<safe-id>/ staging, merge in memory (deterministic, collision-rejecting), then commit file-by-file with write-ahead journal events (will_backup/backup_done/will_install/install_done) and an explicit committed event as the point of no return. The lock protocol is documented as: the caller holds .msvc-kit/installation.lock for the whole transaction lifecycle; no separate lock hierarchy.
+- Why: file-level commit satisfies I-001/I-002/I-006 without a generation-directory migration; in-memory merge is sufficient for one package per component today.
+- Trade-offs: no materialized merged-tree dir (revisit for multi-package merges); journal appends are fsynced per event (I/O cost acceptable at this granularity).
+- Evidence/tests: transaction_tests 9/9; full suite green.
+- Revisit condition: multi-package transactions, pruning integration (P05), or CAS pinning (P06).
+
+## DEC-014: Legacy root adoption with backup instead of hard refusal
+- Date: 2026-11-22
+- Phase: P03
+- Context: Spec 05 section 7 refuses unowned overwrites; but every pre-P03 msvc-kit root has neither ownership.json nor installed manifests, so strict refusal would break re-installs (I-013 CLI compat).
+- Decision: the commit pre-pass classifies existing files as ReplaceOwned when (a) the ownership index records the current digest, or (b) the root carries legacy msvc-kit evidence (.msvc-kit/receipts or .msvc-kit-extracted markers). Replace paths always back up the original bytes into the transaction backup dir before installing. Truly unowned files (no evidence) remain UnownedConflict refusals.
+- Why: keeps the migration one-way and auditable (journal records every adoption), never deletes unknown files, and preserves CLI compatibility.
+- Trade-offs: the legacy evidence check is root-granular, not file-granular (markers are per-archive); backup files live in the transaction dir until commit cleanup.
+- Evidence/tests: replace_owned test, unowned refusal test.
+- Revisit condition: P07 installed manifests supersede legacy evidence.
+
+## DEC-015: Recovery semantics for write-ahead events and post-Committed faults
+- Date: 2026-11-22
+- Phase: P03
+- Context: Spec 05 section 8.3: recovery must distinguish journaled-but-not-executed from executed-but-not-journaled, and default to rollback after executed actions.
+- Decision: recovery groups journal events per path and reconstructs intent: WillBackup/BackupDone carry the old digest (metadata: None means did-not-exist); WillInstall/InstallDone carry the new digest. Rollback removes created files only when they still match the installed digest, restores replaced files from backup (refusing with needs_recovery when a third party modified them), reverts the ownership index, and voids the transaction installed manifest. A fault after the committed event is treated as a durable install (wiring logs and continues; recovery only cleans backups).
+- Why: hash-gating makes recovery idempotent and safe under concurrent third-party writes; the committed event is the single point of no return.
+- Trade-offs: recovery cannot restore bytes if the backup file was lost with the transaction dir in a pre-fix journal format - the fault matrix caught exactly this class (journal/backup name case mismatch) and the format was fixed before shipping.
+- Evidence/tests: fault_injection_matrix (11 points), backup_fault_points, explicit_rollback tests.
+- Revisit condition: pruning or CAS operations join the journal (P05/P06).

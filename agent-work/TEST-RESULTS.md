@@ -45,3 +45,9 @@ lib unittests 218, bin unittests 7, integration 24+20+11+29+7+50+16+36+3+6+11+5+
 | P02-T05 | P02 | `cargo doc` + `RUSTDOCFLAGS=-D warnings` (round 3) | Win11, user | PASS | D:/rust/p02c-doc.log |  |
 | P02-T06 | P02 | `cargo test --lib a_corrupted_first_transfer` (isolation rerun) | Win11, user | PASS | ssh transcript | full-suite failure earlier was a load-dependent parallel flake (pre-existing upstream test from c0b9e0e); not reproduced in the two following full runs |
 | P02-T07 | P02 | mockito fetch-count choreography audit | - | PASS | tests/plan_tests.rs `FetchCounts` | channel always fully fetched (no independent digest); vsman full once then 304-conditionals; asserts encode exact expectations |
+| P03-T01 | P03 | cargo test --all-features --test transaction_tests (final) | Win11, user | PASS | D:/rust/p03a-test.log | 9/9 incl. 11-point fault-injection matrix, backup restore, unowned refusal, coexistence, needs-recovery blocking |
+| P03-T02 | P03 | cargo fmt --all -- --check (final) | Win11, user | PASS | D:/rust/p02c-fmt.log |  |
+| P03-T03 | P03 | cargo clippy --all-targets --all-features -- -D warnings (final) | Win11, user | PASS | D:/rust/p02c-clippy.log |  |
+| P03-T04 | P03 | cargo test --all-features --no-fail-fast (final) | Win11, user | PASS | D:/rust/p02c-test.log | 681 passed / 0 failed / 7 ignored |
+| P03-T05 | P03 | cargo test --doc + cargo doc -D warnings (final) | Win11, user | PASS | D:/rust/p02c-test-doc.log, p02c-doc.log |  |
+| P03-T06 | P03 | fault-matrix bug verification (backup-name case mismatch) | Win11, user | PASS (after fix) | D:/rust/p03a-test.log history | matrix caught journal-lowercase vs backup-original-case mismatch that lost original bytes on recovery; fixed and re-verified |

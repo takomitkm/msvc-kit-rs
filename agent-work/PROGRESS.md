@@ -1,54 +1,44 @@
 # Progress
 
 ## Current phase
-P02 — Canonical InstallPlan / CLI Dry Run (COMPLETE, pending push + CI verification)
+P03 — File-level Staging / Transaction / Recovery (COMPLETE, pending push + CI verification)
 
 ## Status
-P00 COMPLETE (b784452, CI success). P01 COMPLETE (448f877, CI success). P02 COMPLETE pending push.
+P00 COMPLETE (b784452). P01 COMPLETE (448f877). P02 COMPLETE (21e3603) — all CI success. P03 pending push.
 
-## Completed (P02)
-- [x] `ManifestIdentity` + `VsManifest::fetch_with_identity` (manifest digest exposure)
-- [x] Public `InstallPlanDocument` schema + `create_install_plan` planner (cache probing, per-payload actions, blocking conflicts, disk estimates)
-- [x] Stable `plan_id` (SHA256 over canonical form without created_at) + tamper detection
-- [x] `plan` CLI (text/json, --output) + `apply` CLI (verify -> conflicts -> revalidation -> pinned execution)
-- [x] Stale detection: manifest digest change, cached payload digest drift, free-space drop
-- [x] Channel selector accepts explicit http(s) URLs (custom channels, URL-derived cache slug)
-- [x] 7 mockito plan tests + 3 CLI smoke tests; full suite 671 passed / 0 failed
+## Completed (P03)
+- [x] Transaction workspace (.msvc-kit/transactions/<tx>) with journal.jsonl, per-package staging, backup dir
+- [x] Merge with cross-package collision detection (deterministic order)
+- [x] Commit pre-pass: Create/Skip/ReplaceOwned/UnownedConflict (refuse before mutation)
+- [x] Write-ahead journal + hash-gated per-path rollback + ownership/manifest revert
+- [x] recover_pending (idempotent) wired into both extract-and-finalize paths
+- [x] InstalledManifest schema (installed-manifest.v1) with golden tests
+- [x] 9 transaction tests incl. 11-point fault-injection matrix; found and fixed a real backup-restore data-loss bug
+- [x] Full verification green: fmt/clippy/681 tests/0 failed + doc
 
 ## Remaining
-- [ ] push P02 commits; verify CI workflow conclusion=success on the pushed sha
-- [ ] P03 (next): file-level staging / transaction journal / recovery
+- [ ] push P03 commits; verify CI workflow conclusion=success on the pushed sha
+- [ ] P04 (next): MSI backend abstraction + native MSI spike
 
-## Files changed (P02)
-- `src/downloader/manifest.rs`: ManifestIdentity + fetch_with_identity (+ test call sites)
-- `src/installer/plan.rs`: new public plan module (document, planner, plan_id, revalidation)
-- `src/installer/contracts.rs`: plan types moved out; internal receipt/ownership/journal schemas remain
-- `src/bin/msvc-kit.rs`: plan/apply subcommands
-- `src/vs_channel.rs`: URL channel selector + URL-derived cache slug
-- `src/lib.rs`, `src/installer/mod.rs`: re-exports
-- `Cargo.toml`: windows-sys Win32_Storage_FileSystem feature
-- `tests/plan_tests.rs`, `tests/cli_exit_code_tests.rs`: new tests
-- `agent-work/*`: P02 report
-
-## Files changed (P01, retained for reference)
-- `src/installer/path_safety.rs`: resolver, occupancy, caps, unit tests
-- `src/installer/extractor.rs`: two-pass guarded VSIX/CAB extraction
-- `src/installer/mod.rs`: marker v2
-- `tests/installer_safety_tests.rs`: spec 08 §3 matrix
+## Files changed (P03)
+- `src/installer/transaction.rs`: new public module (workspace, journal, merge, commit, rollback, recovery, fault hook)
+- `src/installer/mod.rs`: extract_and_finalize_* wired through transactions; probe visibility
+- `src/installer/contracts.rs`: InstalledManifest schema + golden test
+- `tests/transaction_tests.rs`: fault matrix + exit-gate scenarios (9 tests)
+- `agent-work/*`: P03 report
 
 ## Tests
-- PASS: `cargo fmt --all -- --check` (D:\rust\p02c-fmt.log)
+- PASS: `cargo fmt --all -- --check` (D:\rust\p02c-fmt.log, final P03 round)
 - PASS: `cargo clippy --all-targets --all-features -- -D warnings` (D:\rust\p02c-clippy.log)
-- PASS: `cargo test --all-features --no-fail-fast` — 671 passed / 0 failed / 7 ignored (D:\rust\p02c-test.log)
-- PASS: `cargo test --doc` — 23 passed (D:\rust\p02c-test-doc.log)
-- PASS: `cargo doc --no-deps --document-private-items` + `RUSTDOCFLAGS=-D warnings` (D:\rust\p02c-doc.log)
-- FLAKE (pre-existing, load-dependent): `downloader::common_tests::a_corrupted_first_transfer_is_refetched_and_succeeds` failed once under full-suite parallel load; passes in isolation and in the two following full runs (upstream test from c0b9e0e; no download-path changes in P02)
-- P01 records (D:\rust\p01c-*.log) retained in TEST-RESULTS.md
+- PASS: `cargo test --all-features --no-fail-fast` — 681 passed / 0 failed / 7 ignored (D:\rust\p02c-test.log)
+- PASS: `cargo test --all-features --test transaction_tests` — 9/9 (D:\rust\p03a-test.log)
+- PASS: `cargo test --doc` — 23 passed; `cargo doc` -D warnings (D:\rust\p02c-test-doc.log, p02c-doc.log)
+- P02 records (p02c-*.log) retained in TEST-RESULTS.md
 
 ## Risks / regressions
-- Apply is not yet transactional — half-install risk (R-003) unchanged until P03; the plan pin check closes the silent-package-swap gap.
-- Disk estimates leave staging/backup/final as null (bounded confidence) until P03/P06 data exists.
-- Plan identity includes the normalized target root string; path-independent identity is deferred to P03 (root identity) / P08.
+- Transaction staging + commit adds journal fsyncs per file event (I/O cost accepted).
+- Legacy roots are adopted (backup + journal) rather than refused — one-time migration path.
+- Recovery cannot restore bytes if the backup was lost in the pre-fix journal format; the format bug was caught by the fault matrix and fixed before shipping.
 
 ## Next exact action
-Commit P02 as `feat(plan)` (planner + CLI + manifest identity), `test(plan)` (plan tests), `docs(agent-work)`; push; poll CI for conclusion=success. Then P03: per-transaction workspace (.msvc-kit/transactions/<tx>), write-ahead journal using the P01 schemas, file-level backup/commit/rollback, recovery command, ownership index write-through, and fault-injection tests at the spec 08 §10 points.
+Commit P03 as `feat(installer)` (transaction core + wiring + schema) and `test(installer)` (fault matrix), `docs(agent-work)`; push; poll CI for conclusion=success. Then P04: keep msiexec backend, add MsiBackendPreference abstraction + fake process-runner tests (1618/1603/1619/1620, no /i), verbose log, and the native MSI feasibility report (msi + cab crates).
