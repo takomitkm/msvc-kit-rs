@@ -66,3 +66,7 @@ lib unittests 218, bin unittests 7, integration 24+20+11+29+7+50+16+36+3+6+11+5+
 | P06-T02 | P06 | cargo fmt --all -- --check (final) | Win11, user | PASS | D:/rust/p02c-fmt.log |  |
 | P06-T03 | P06 | cargo clippy --all-targets --all-features -- -D warnings (final) | Win11, user | PASS | D:/rust/p02c-clippy.log |  |
 | P06-T04 | P06 | Windows sync_all discovery | Win11, user | PASS (after fix) | D:/rust/p02c-test.log history | sync_all on a read-only handle fails with Access Denied on Windows; partial-file fsync now opens in write mode |
+| P07-T01 | P07 | cargo test --all-features --no-fail-fast (final) | Win11, user | PASS | D:/rust/p02c-test.log | 703 passed / 0 failed / 7 ignored; adds 6 lock-v2 tests (v1 compat, round-trip, provenance contradiction, schema rejection, mutation detection) |
+| P07-T02 | P07 | cargo fmt --all -- --check (final) | Win11, user | PASS | D:/rust/p02c-fmt.log |  |
+| P07-T03 | P07 | cargo clippy --all-targets --all-features -- -D warnings (final) | Win11, user | PASS | D:/rust/p02c-clippy.log |  |
+| P07-T04 | P07 | flaky downloader test isolation runs (x2) | Win11, user | PASS | ssh transcript | a_corrupted_first_transfer passed twice in isolation; annotated as known parallel-load flake (pre-existing upstream test) |

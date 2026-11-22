@@ -186,3 +186,13 @@
 - Trade-offs: dedup happens only for imported files until the downloader publishes into CAS directly; pinning is manual until transaction integration.
 - Evidence/tests: 6 CAS tests incl. dedup, quarantine, GC dry-run/pins/retention/idempotence, re-runnable migration.
 - Revisit condition: plan/apply integration (P08) or downloader rework.
+
+## DEC-019: Lock v2 flattens the v1 core instead of duplicating fields; InstalledManifest becomes the public verify contract
+- Date: 2026-11-22
+- Phase: P07
+- Context: v2 could either re-declare v1 fields (duplication drift) or flatten the v1 core struct; and tree verification needs InstalledManifest to be public (it was pub(crate) from P03).
+- Decision: ToolchainLockV2 #[serde(flatten)]s a LockedSelectionCore (v1 fields verbatim) and adds provenance/pruning/manifest-digest/CAB-relations; InstalledManifest + InstalledFileEntry + INSTALLED_MANIFEST_SCHEMA are re-exported through installer. verify_installed_tree re-hashes every manifest entry and reports Modified/Missing/Extra, skipping .msvc-kit/.msvc-kit-extracted/downloads; it never deletes.
+- Why: one source of truth for selection fields; the verify contract is the natural public surface for mutation detection.
+- Trade-offs: flattening couples v2 to v1 field names (acceptable - the v1 core is frozen); extra-file reporting is informational only.
+- Evidence/tests: 6 lock-v2 tests; 703 passed / 0 failed.
+- Revisit condition: verify/doctor CLI wiring (P08+).
