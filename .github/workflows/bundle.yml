@@ -127,6 +127,21 @@ jobs:
           
           Write-Host "✅ Bundle structure validated"
 
+      # On failure, collect the msiexec verbose logs the CLI writes beside each
+      # source MSI (`msvc-kit-<name>.log`). They are the only reliable evidence
+      # for why `msiexec /a` returned 1603, and the runner is discarded after
+      # the job, so they must be uploaded before the job ends.
+      - name: Collect msiexec verbose logs (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: msiexec-verbose-logs-${{ inputs.arch || 'x64' }}
+          path: |
+            test-bundle/downloads/**/msvc-kit-*.log
+            test-bundle/.msvc-kit/transactions/**/journal.jsonl
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Validate extracted toolchain selection and compilation
         shell: pwsh
         run: |
