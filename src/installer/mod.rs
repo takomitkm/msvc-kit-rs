@@ -45,6 +45,7 @@ pub(crate) const SDK_OPTIONAL_MSI_SKIP_PATTERNS: &[&str] = &[
     "winrt intellisense",
     "windows store apps",
     "uapsdk",
+    "directx",
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -748,6 +749,20 @@ mod tests {
             classify_sdk_payload_for_extraction(non_library, Architecture::X64),
             SdkExtractionAction::SkipOptional,
             "store-app pattern still wins via the name-based blacklist"
+        );
+    }
+
+    #[test]
+    fn sdk_msi_directx_remote_payload_is_skipped() {
+        // SDK 28000 ships DirectX remote-component MSIs that are not needed
+        // for native MSVC/Rust compilation and whose administrative
+        // extraction fails (msiexec 1603).
+        let directx = Path::new(
+            "downloads/sdk/28000_x64/Installers/Windows SDK DirectX x86 Remote-x86_en-us.msi",
+        );
+        assert_eq!(
+            classify_sdk_payload_for_extraction(directx, Architecture::X64),
+            SdkExtractionAction::SkipOptional
         );
     }
 
