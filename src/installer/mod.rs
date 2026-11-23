@@ -682,6 +682,7 @@ mod tests {
                 "downloads/sdk/28000_x64/Redistributable/10.1.0.0/UAPSDKAddOn-x86.msi",
             ),
             PathBuf::from("downloads/sdk/26100_arm64/Installers/Windows SDK Desktop Headers arm64-x86_en-us.msi"),
+            PathBuf::from("downloads/sdk/28000_x64/Installers/Windows SDK Desktop Headers x64-x86_en-us.msi"),
         ];
 
         assert_eq!(
@@ -710,11 +711,15 @@ mod tests {
         );
         assert_eq!(
             classify_sdk_payload_for_extraction(&payloads[6], Architecture::X64),
+            SdkExtractionAction::SkipOptional
+        );
+        assert_eq!(
+            classify_sdk_payload_for_extraction(&payloads[7], Architecture::X64),
             SdkExtractionAction::Extract
         );
 
         let extractable = sdk_payloads_to_extract(&payloads, Architecture::X64);
-        assert_eq!(extractable, vec![payloads[6].clone()]);
+        assert_eq!(extractable, vec![payloads[7].clone()]);
     }
 
     #[test]
