@@ -76,7 +76,7 @@ async fn run_commit(
 ) -> std::result::Result<CommittedInstall, msvc_kit::MsvcKitError> {
     let mut tx = transaction::Transaction::begin(root, "test-plan", faults)?;
     let staged = tx
-        .stage_package(PKG, &[payload.to_path_buf()], |_| true)
+        .stage_package(PKG, &[payload.to_path_buf()], |_| true, false)
         .await?;
     let merged = tx.merge(std::slice::from_ref(&staged))?;
     match tx.commit(&merged).await {
@@ -126,7 +126,7 @@ async fn commit_fresh_root_writes_files_ownership_and_manifest() {
 
     let mut tx = transaction::Transaction::begin(&fx.root, "plan-1", FaultHook::none()).unwrap();
     let staged = tx
-        .stage_package(PKG, std::slice::from_ref(&fx.payload), |_| true)
+        .stage_package(PKG, std::slice::from_ref(&fx.payload), |_| true, false)
         .await
         .unwrap();
     assert_eq!(staged.files.len(), 1);
@@ -184,7 +184,7 @@ async fn reinstall_identical_files_skips_writes_and_adds_owner() {
     let fx = Fixture::new(&[(REL_FILE, b"same")]);
     let mut tx = transaction::Transaction::begin(&fx.root, "plan-1", FaultHook::none()).unwrap();
     let staged = tx
-        .stage_package(PKG, std::slice::from_ref(&fx.payload), |_| true)
+        .stage_package(PKG, std::slice::from_ref(&fx.payload), |_| true, false)
         .await
         .unwrap();
     let merged = tx.merge(std::slice::from_ref(&staged)).unwrap();
@@ -194,7 +194,7 @@ async fn reinstall_identical_files_skips_writes_and_adds_owner() {
     // new owner is appended without rewriting the file.
     let mut tx = transaction::Transaction::begin(&fx.root, "plan-2", FaultHook::none()).unwrap();
     let staged = tx
-        .stage_package("other.package", std::slice::from_ref(&fx.payload), |_| true)
+        .stage_package("other.package", std::slice::from_ref(&fx.payload), |_| true, false)
         .await
         .unwrap();
     let merged = tx.merge(std::slice::from_ref(&staged)).unwrap();
@@ -225,7 +225,7 @@ async fn replace_owned_file_backs_up_then_installs() {
     let mut tx = transaction::Transaction::begin(&fx.root, "plan-1", FaultHook::none()).unwrap();
     let tx_id = tx.transaction_id().to_string();
     let staged = tx
-        .stage_package(PKG, std::slice::from_ref(&fx.payload), |_| true)
+        .stage_package(PKG, std::slice::from_ref(&fx.payload), |_| true, false)
         .await
         .unwrap();
     let merged = tx.merge(std::slice::from_ref(&staged)).unwrap();
@@ -278,7 +278,7 @@ async fn two_versions_coexist_in_one_root() {
     let fx = Fixture::new(&[("VC/Tools/MSVC/14.44/file.txt", b"v14.44")]);
     let mut tx = transaction::Transaction::begin(&fx.root, "plan-a", FaultHook::none()).unwrap();
     let staged = tx
-        .stage_package(PKG, std::slice::from_ref(&fx.payload), |_| true)
+        .stage_package(PKG, std::slice::from_ref(&fx.payload), |_| true, false)
         .await
         .unwrap();
     let merged = tx.merge(std::slice::from_ref(&staged)).unwrap();
@@ -289,7 +289,7 @@ async fn two_versions_coexist_in_one_root() {
     make_zip(&payload_b, &[("VC/Tools/MSVC/14.45/file.txt", b"v14.45")]);
     let mut tx = transaction::Transaction::begin(&fx.root, "plan-b", FaultHook::none()).unwrap();
     let staged = tx
-        .stage_package("pkg-b", &[payload_b], |_| true)
+        .stage_package("pkg-b", &[payload_b], |_| true, false)
         .await
         .unwrap();
     let merged = tx.merge(std::slice::from_ref(&staged)).unwrap();
@@ -427,7 +427,7 @@ async fn explicit_rollback_restores_original_bytes_and_marks_journal() {
     .unwrap();
     let tx_id = tx.transaction_id().to_string();
     let staged = tx
-        .stage_package(PKG, std::slice::from_ref(&fx.payload), |_| true)
+        .stage_package(PKG, std::slice::from_ref(&fx.payload), |_| true, false)
         .await
         .unwrap();
     let merged = tx.merge(std::slice::from_ref(&staged)).unwrap();
@@ -469,7 +469,7 @@ async fn crash_helper_logic(root: &Path, payload: &Path) -> ! {
     )
     .unwrap();
     let staged = tx
-        .stage_package(PKG, std::slice::from_ref(&payload.to_path_buf()), |_| true)
+        .stage_package(PKG, std::slice::from_ref(&payload.to_path_buf()), |_| true, false)
         .await
         .unwrap();
     let merged = tx.merge(std::slice::from_ref(&staged)).unwrap();
