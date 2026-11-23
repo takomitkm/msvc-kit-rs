@@ -145,23 +145,6 @@ pub enum MsvcKitError {
     #[error("Download cancelled by user")]
     Cancelled,
 
-    /// msiexec administrative extraction failed with a non-fatal exit code.
-    ///
-    /// Exit code 1603 is a generic Windows Installer failure that occurs
-    /// for optional SDK MSI payloads (Store Apps, UWP, DirectX, desktop
-    /// extension contracts, non-target architectures, etc.) whose files
-    /// are not required for native MSVC/Rust compilation. SDK extraction
-    /// tolerates these and warns instead of aborting the whole install.
-    #[error("msiexec administrative extraction failed with exit code {code} for {file}: {detail}")]
-    MsiExecExtractionFailed {
-        /// msiexec exit code
-        code: i32,
-        /// Source MSI file name
-        file: String,
-        /// Human-readable detail (from explain_windows_installer_code)
-        detail: String,
-    },
-
     /// Generic error with message
     #[error("{0}")]
     Other(String),

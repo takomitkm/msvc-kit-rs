@@ -393,7 +393,6 @@ impl Transaction {
         package_id: &str,
         payload_files: &[PathBuf],
         classify: impl Fn(&Path) -> bool,
-        tolerate_optional_msi_failure: bool,
     ) -> Result<StagedPackage> {
         let dir_name = safe_package_dir_name(package_id);
         let package_dir = self.packages_dir.join(&dir_name);
@@ -413,25 +412,7 @@ impl Transaction {
                 skipped_via_marker = true;
                 continue;
             }
-            if let Err(error) = super::extract_package(&payload.clone(), &package_dir).await {
-                if tolerate_optional_msi_failure
-                    && matches!(
-                        &error,
-                        MsvcKitError::MsiExecExtractionFailed { code: 1603, .. }
-                    )
-                {
-                    // Optional SDK MSI payloads (Store Apps, UWP, DirectX, desktop
-                    // extension contracts, non-target architectures, ...) fail
-                    // administrative extraction but are not required for native
-                    // MSVC/Rust compilation. Warn and continue instead of aborting.
-                    tracing::warn!(
-                        "Skipping Windows SDK MSI whose administrative extraction failed (1603); payload not required for MSVC toolchains: {}",
-                        payload.display()
-                    );
-                    continue;
-                }
-                return Err(error);
-            }
+            super::extract_package(&payload.clone(), &package_dir).await?;
             extracted_any = true;
         }
 
