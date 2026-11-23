@@ -41,7 +41,7 @@ use extractor::{
 };
 
 pub(crate) const SDK_OPTIONAL_MSI_SKIP_PATTERNS: &[&str] =
-    &["application verifier", "winrt intellisense"];
+    &["application verifier", "winrt intellisense", "windows store apps"];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum SdkExtractionAction {
@@ -634,6 +634,9 @@ mod tests {
             PathBuf::from("downloads/sdk/26100_arm64/Installers/source.cab"),
             PathBuf::from("downloads/sdk/26100_arm64/Installers/Application Verifier arm64 External Package (DesktopEditions)-arm64_en-us.msi"),
             PathBuf::from("downloads/sdk/26100_arm64/Installers/WinRT Intellisense UAP - en-us-x86_en-us.msi"),
+            PathBuf::from(
+                "downloads/sdk/28000_x64/Installers/Windows SDK for Windows Store Apps Tools-x86_en-us.msi",
+            ),
             PathBuf::from("downloads/sdk/26100_arm64/Installers/Windows SDK Desktop Headers arm64-x86_en-us.msi"),
         ];
 
@@ -655,11 +658,15 @@ mod tests {
         );
         assert_eq!(
             classify_sdk_payload_for_extraction(&payloads[4]),
+            SdkExtractionAction::SkipOptional
+        );
+        assert_eq!(
+            classify_sdk_payload_for_extraction(&payloads[5]),
             SdkExtractionAction::Extract
         );
 
         let extractable = sdk_payloads_to_extract(&payloads);
-        assert_eq!(extractable, vec![payloads[4].clone()]);
+        assert_eq!(extractable, vec![payloads[5].clone()]);
     }
 
     #[tokio::test]
