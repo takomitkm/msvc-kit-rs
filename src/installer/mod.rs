@@ -494,7 +494,7 @@ pub async fn extract_and_finalize_msvc_with_profile(
     let mut tx =
         transaction::Transaction::begin(target_dir, "download", transaction::FaultHook::none())?;
     let mut staged = tx
-        .stage_package("msvc", &info.downloaded_files, |_| true)
+        .stage_package("msvc", &info.downloaded_files, |_| true, false)
         .await?;
     {
         let context = pruning::PruningContext {
@@ -572,12 +572,17 @@ pub async fn extract_and_finalize_sdk_with_profile(
         transaction::Transaction::begin(target_dir, "download", transaction::FaultHook::none())?;
     let sdk_files: Vec<PathBuf> = sdk_payloads_to_extract(&info.downloaded_files, info.arch);
     let mut staged = tx
-        .stage_package("sdk", &sdk_files, |payload| {
-            matches!(
-                classify_sdk_payload_for_extraction(payload, info.arch),
-                SdkExtractionAction::Extract
-            )
-        })
+        .stage_package(
+            "sdk",
+            &sdk_files,
+            |payload| {
+                matches!(
+                    classify_sdk_payload_for_extraction(payload, info.arch),
+                    SdkExtractionAction::Extract
+                )
+            },
+            true,
+        )
         .await?;
     {
         let context = pruning::PruningContext {

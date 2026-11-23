@@ -232,16 +232,25 @@ impl<'a> MsiexecBackend<'a> {
                     self.runner.sleep(self.retry_delay);
                 }
                 code => {
-                    return Err(MsvcKitError::Other(format!(
-                        "msiexec failed with exit code {:?} for {}\n{}\nSource MSI: {}\nTarget \
-                         directory: {}\nVerbose log: {}",
-                        code,
-                        file_name,
-                        super::extractor::explain_windows_installer_code(code),
-                        msi_path.display(),
-                        target_dir.display(),
-                        log_path.display()
-                    )));
+                    let detail = super::extractor::explain_windows_installer_code(code);
+                    return Err(if code == Some(1603) {
+                        MsvcKitError::MsiExecExtractionFailed {
+                            code: 1603,
+                            file: file_name.clone(),
+                            detail: detail.to_string(),
+                        }
+                    } else {
+                        MsvcKitError::Other(format!(
+                            "msiexec failed with exit code {:?} for {}\n{}\nSource MSI: {}\nTarget \
+                             directory: {}\nVerbose log: {}",
+                            code,
+                            file_name,
+                            detail,
+                            msi_path.display(),
+                            target_dir.display(),
+                            log_path.display()
+                        ))
+                    });
                 }
             }
         }
@@ -375,11 +384,7 @@ mod tests {
     #[cfg(windows)]
     #[test]
     fn fatal_codes_report_log_path_and_guidance() {
-        for (code, expected) in [
-            (1603, "generic fatal"),
-            (1619, "could not be opened"),
-            (1620, "not a valid"),
-        ] {
+        for (code, expected) in [(1619, "could not be opened"), (1620, "not a valid")] {
             let runner = FakeRunner::with_codes(&[Some(code)]);
             let backend = MsiexecBackend::new(&runner);
             let dir = tempfile::tempdir().unwrap();
@@ -399,6 +404,32 @@ mod tests {
                 "log path beside the source MSI: {error}"
             );
         }
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn msiexec_1603_is_distinct_optional_extraction_failure() {
+        // 1603 is the generic optional-SDK-MSI failure that SDK extraction
+        // tolerates (warn and skip). It maps to MsiExecExtractionFailed,
+        // not the generic fatal guidance with a verbose log path.
+        let runner = FakeRunner::with_codes(&[Some(1603)]);
+        let backend = MsiexecBackend::new(&runner);
+        let dir = tempfile::tempdir().unwrap();
+        let msi = msi_fixture(dir.path());
+        let error = backend
+            .extract(&msi, &dir.path().join("t"), None)
+            .unwrap_err();
+        assert!(
+            matches!(
+                error,
+                MsvcKitError::MsiExecExtractionFailed { code: 1603, .. }
+            ),
+            "1603 must map to the distinct optional-extraction variant: {error}"
+        );
+        assert!(
+            error.to_string().contains("1603"),
+            "variant message keeps the exit code: {error}"
+        );
     }
 
     #[cfg(windows)]
