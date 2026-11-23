@@ -40,8 +40,11 @@ use extractor::{
     inner_progress_enabled,
 };
 
-pub(crate) const SDK_OPTIONAL_MSI_SKIP_PATTERNS: &[&str] =
-    &["application verifier", "winrt intellisense", "windows store apps"];
+pub(crate) const SDK_OPTIONAL_MSI_SKIP_PATTERNS: &[&str] = &[
+    "application verifier",
+    "winrt intellisense",
+    "windows store apps",
+];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum SdkExtractionAction {
