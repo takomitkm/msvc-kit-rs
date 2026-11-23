@@ -40,13 +40,8 @@ use extractor::{
     inner_progress_enabled,
 };
 
-pub(crate) const SDK_OPTIONAL_MSI_SKIP_PATTERNS: &[&str] = &[
-    "application verifier",
-    "winrt intellisense",
-    "windows store apps",
-    "uapsdk",
-    "directx",
-];
+pub(crate) const SDK_OPTIONAL_MSI_SKIP_PATTERNS: &[&str] =
+    &["application verifier", "winrt intellisense"];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum SdkExtractionAction {
@@ -56,37 +51,7 @@ enum SdkExtractionAction {
     SkipUnsupported,
 }
 
-/// Whether an SDK MSI payload targets an architecture other than the
-/// requested one (e.g. arm64 Desktop Libs under an x64 install). Applied
-/// only to library-family payloads so language markers such as
-/// `x86_en-us` are not misread as an architecture.
-fn sdk_msi_is_other_arch(name: &str, target: Architecture) -> bool {
-    let lower = name.to_lowercase();
-    let is_library_family =
-        lower.contains("libs") || lower.contains("headers") || lower.contains("tools");
-    if !is_library_family {
-        return false;
-    }
-    match first_sdk_arch_segment(&lower) {
-        Some(arch) => arch != target,
-        None => false,
-    }
-}
-
-fn first_sdk_arch_segment(lower: &str) -> Option<Architecture> {
-    for token in lower.split(['-', '_', ' ']) {
-        match token {
-            "arm64" => return Some(Architecture::Arm64),
-            "arm" => return Some(Architecture::Arm),
-            "x86" => return Some(Architecture::X86),
-            "x64" => return Some(Architecture::X64),
-            _ => {}
-        }
-    }
-    None
-}
-
-fn classify_sdk_payload_for_extraction(file: &Path, target: Architecture) -> SdkExtractionAction {
+fn classify_sdk_payload_for_extraction(file: &Path) -> SdkExtractionAction {
     let extension = file
         .extension()
         .and_then(|e| e.to_str())
@@ -100,11 +65,10 @@ fn classify_sdk_payload_for_extraction(file: &Path, target: Architecture) -> Sdk
                 .and_then(|n| n.to_str())
                 .unwrap_or_default()
                 .to_lowercase();
-            let skip = SDK_OPTIONAL_MSI_SKIP_PATTERNS
+            if SDK_OPTIONAL_MSI_SKIP_PATTERNS
                 .iter()
                 .any(|pattern| name.contains(pattern))
-                || sdk_msi_is_other_arch(&name, target);
-            if skip {
+            {
                 SdkExtractionAction::SkipOptional
             } else {
                 SdkExtractionAction::Extract
@@ -115,21 +79,20 @@ fn classify_sdk_payload_for_extraction(file: &Path, target: Architecture) -> Sdk
     }
 }
 
-fn sdk_payloads_to_extract(files: &[PathBuf], target: Architecture) -> Vec<PathBuf> {
+fn sdk_payloads_to_extract(files: &[PathBuf]) -> Vec<PathBuf> {
     let mut extractable = Vec::new();
     let mut source_media = 0usize;
     let mut optional = 0usize;
     let mut unsupported = 0usize;
 
     for file in files {
-        match classify_sdk_payload_for_extraction(file, target) {
+        match classify_sdk_payload_for_extraction(file) {
             SdkExtractionAction::Extract => extractable.push(file.clone()),
             SdkExtractionAction::KeepSourceMedia => source_media += 1,
             SdkExtractionAction::SkipOptional => {
                 optional += 1;
                 tracing::info!(
-                    "Skipping Windows SDK MSI not required for the {} target (optional or non-target architecture): {:?}",
-                    target,
+                    "Skipping optional Windows SDK MSI that is not required for MSVC toolchains: {:?}",
                     file
                 );
             }
@@ -138,7 +101,7 @@ fn sdk_payloads_to_extract(files: &[PathBuf], target: Architecture) -> Vec<PathB
     }
 
     tracing::info!(
-        "Windows SDK extraction plan: {} MSI files, {} source CAB files retained, {} optional/non-target MSI files skipped, {} unsupported payloads skipped",
+        "Windows SDK extraction plan: {} MSI files, {} source CAB files retained, {} optional MSI files skipped, {} unsupported payloads skipped",
         extractable.len(),
         source_media,
         optional,
@@ -570,11 +533,11 @@ pub async fn extract_and_finalize_sdk_with_profile(
     transaction::recover_pending(target_dir).await?;
     let mut tx =
         transaction::Transaction::begin(target_dir, "download", transaction::FaultHook::none())?;
-    let sdk_files: Vec<PathBuf> = sdk_payloads_to_extract(&info.downloaded_files, info.arch);
+    let sdk_files: Vec<PathBuf> = sdk_payloads_to_extract(&info.downloaded_files);
     let mut staged = tx
         .stage_package("sdk", &sdk_files, |payload| {
             matches!(
-                classify_sdk_payload_for_extraction(payload, info.arch),
+                classify_sdk_payload_for_extraction(payload),
                 SdkExtractionAction::Extract
             )
         })
@@ -633,7 +596,7 @@ pub async fn install_sdk(info: &InstallInfo) -> Result<PathBuf> {
     );
 
     tokio::fs::create_dir_all(&info.install_path).await?;
-    let sdk_files = sdk_payloads_to_extract(&info.downloaded_files, info.arch);
+    let sdk_files = sdk_payloads_to_extract(&info.downloaded_files);
     extract_packages_with_progress(&sdk_files, &info.install_path, "Windows SDK").await?;
 
     Ok(info.install_path.clone())
@@ -671,99 +634,32 @@ mod tests {
             PathBuf::from("downloads/sdk/26100_arm64/Installers/source.cab"),
             PathBuf::from("downloads/sdk/26100_arm64/Installers/Application Verifier arm64 External Package (DesktopEditions)-arm64_en-us.msi"),
             PathBuf::from("downloads/sdk/26100_arm64/Installers/WinRT Intellisense UAP - en-us-x86_en-us.msi"),
-            PathBuf::from(
-                "downloads/sdk/28000_x64/Installers/Windows SDK for Windows Store Apps Tools-x86_en-us.msi",
-            ),
-            PathBuf::from(
-                "downloads/sdk/28000_x64/Redistributable/10.1.0.0/UAPSDKAddOn-x86.msi",
-            ),
             PathBuf::from("downloads/sdk/26100_arm64/Installers/Windows SDK Desktop Headers arm64-x86_en-us.msi"),
-            PathBuf::from("downloads/sdk/28000_x64/Installers/Windows SDK Desktop Headers x64-x86_en-us.msi"),
         ];
 
         assert_eq!(
-            classify_sdk_payload_for_extraction(&payloads[0], Architecture::X64),
+            classify_sdk_payload_for_extraction(&payloads[0]),
             SdkExtractionAction::SkipUnsupported
         );
         assert_eq!(
-            classify_sdk_payload_for_extraction(&payloads[1], Architecture::X64),
+            classify_sdk_payload_for_extraction(&payloads[1]),
             SdkExtractionAction::KeepSourceMedia
         );
         assert_eq!(
-            classify_sdk_payload_for_extraction(&payloads[2], Architecture::X64),
+            classify_sdk_payload_for_extraction(&payloads[2]),
             SdkExtractionAction::SkipOptional
         );
         assert_eq!(
-            classify_sdk_payload_for_extraction(&payloads[3], Architecture::X64),
+            classify_sdk_payload_for_extraction(&payloads[3]),
             SdkExtractionAction::SkipOptional
         );
         assert_eq!(
-            classify_sdk_payload_for_extraction(&payloads[4], Architecture::X64),
-            SdkExtractionAction::SkipOptional
-        );
-        assert_eq!(
-            classify_sdk_payload_for_extraction(&payloads[5], Architecture::X64),
-            SdkExtractionAction::SkipOptional
-        );
-        assert_eq!(
-            classify_sdk_payload_for_extraction(&payloads[6], Architecture::X64),
-            SdkExtractionAction::SkipOptional
-        );
-        assert_eq!(
-            classify_sdk_payload_for_extraction(&payloads[7], Architecture::X64),
+            classify_sdk_payload_for_extraction(&payloads[4]),
             SdkExtractionAction::Extract
         );
 
-        let extractable = sdk_payloads_to_extract(&payloads, Architecture::X64);
-        assert_eq!(extractable, vec![payloads[7].clone()]);
-    }
-
-    #[test]
-    fn sdk_msi_other_arch_is_skipped_for_target() {
-        // SDK 28000 ships library/header MSIs for every architecture. Under an
-        // x64 target, arm64/x86 library payloads are not required and their
-        // administrative extraction fails, so they must be skipped.
-        let target = Architecture::X64;
-        let arm64_libs = Path::new(
-            "downloads/sdk/28000_x64/Installers/Windows SDK Desktop Libs arm64-x86_en-us.msi",
-        );
-        let x64_libs = Path::new(
-            "downloads/sdk/28000_x64/Installers/Windows SDK Desktop Libs x64-x86_en-us.msi",
-        );
-
-        assert_eq!(
-            classify_sdk_payload_for_extraction(arm64_libs, target),
-            SdkExtractionAction::SkipOptional
-        );
-        assert_eq!(
-            classify_sdk_payload_for_extraction(x64_libs, target),
-            SdkExtractionAction::Extract
-        );
-
-        // A non-library payload with the same name shape is still extracted
-        // (architecture filtering is scoped to library/header/tool payloads).
-        let non_library = Path::new(
-            "downloads/sdk/28000_x64/Installers/Windows SDK for Windows Store Apps-x86_en-us.msi",
-        );
-        assert_eq!(
-            classify_sdk_payload_for_extraction(non_library, Architecture::X64),
-            SdkExtractionAction::SkipOptional,
-            "store-app pattern still wins via the name-based blacklist"
-        );
-    }
-
-    #[test]
-    fn sdk_msi_directx_remote_payload_is_skipped() {
-        // SDK 28000 ships DirectX remote-component MSIs that are not needed
-        // for native MSVC/Rust compilation and whose administrative
-        // extraction fails (msiexec 1603).
-        let directx = Path::new(
-            "downloads/sdk/28000_x64/Installers/Windows SDK DirectX x86 Remote-x86_en-us.msi",
-        );
-        assert_eq!(
-            classify_sdk_payload_for_extraction(directx, Architecture::X64),
-            SdkExtractionAction::SkipOptional
-        );
+        let extractable = sdk_payloads_to_extract(&payloads);
+        assert_eq!(extractable, vec![payloads[4].clone()]);
     }
 
     #[tokio::test]

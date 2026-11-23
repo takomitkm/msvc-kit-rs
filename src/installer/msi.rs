@@ -199,10 +199,12 @@ impl<'a> MsiexecBackend<'a> {
             }
         }
         let msi_arg = super::extractor::msiexec_path_arg(msi_path);
-        let target_arg = format!(
-            "TARGETDIR={}",
-            super::extractor::msiexec_path_arg(target_dir)
-        );
+        // build_args prepends `TARGETDIR=`; pass the bare path here. Passing
+        // an already-prefixed value produced `TARGETDIR=TARGETDIR=<path>`,
+        // which Windows Installer reports as Error 1606 ("could not access
+        // network location") and then surfaces as exit code 1603 for every
+        // SDK MSI — see the msiexec verbose logs.
+        let target_arg = super::extractor::msiexec_path_arg(target_dir);
         let file_name = msi_path
             .file_name()
             .and_then(|name| name.to_str())
@@ -321,7 +323,18 @@ mod tests {
         let args = &runs[0].args;
         assert_eq!(args[0], "/a", "must be administrative extraction");
         assert_eq!(args[2], "/qn");
-        assert!(args[3].starts_with("TARGETDIR="));
+        // Exactly one `TARGETDIR=` prefix: a double prefix
+        // (`TARGETDIR=TARGETDIR=<path>`) makes Windows Installer fail every
+        // MSI with Error 1606 -> exit code 1603, so assert the exact form.
+        assert_eq!(
+            args[3],
+            format!("TARGETDIR={}", target.display()),
+            "TARGETDIR must carry exactly one prefix and the bare path"
+        );
+        assert!(
+            !args[3].contains("TARGETDIR=TARGETDIR="),
+            "double TARGETDIR prefix must never be produced"
+        );
         assert!(
             args.windows(2).any(|pair| pair[0] == "/L*V"),
             "verbose log flag required"
