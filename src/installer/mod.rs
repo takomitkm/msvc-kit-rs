@@ -61,9 +61,8 @@ enum SdkExtractionAction {
 /// `x86_en-us` are not misread as an architecture.
 fn sdk_msi_is_other_arch(name: &str, target: Architecture) -> bool {
     let lower = name.to_lowercase();
-    let is_library_family = lower.contains("libs")
-        || lower.contains("headers")
-        || lower.contains("tools");
+    let is_library_family =
+        lower.contains("libs") || lower.contains("headers") || lower.contains("tools");
     if !is_library_family {
         return false;
     }
@@ -86,10 +85,7 @@ fn first_sdk_arch_segment(lower: &str) -> Option<Architecture> {
     None
 }
 
-fn classify_sdk_payload_for_extraction(
-    file: &Path,
-    target: Architecture,
-) -> SdkExtractionAction {
+fn classify_sdk_payload_for_extraction(file: &Path, target: Architecture) -> SdkExtractionAction {
     let extension = file
         .extension()
         .and_then(|e| e.to_str())
