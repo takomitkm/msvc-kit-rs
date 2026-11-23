@@ -7,6 +7,14 @@ on:
         description: "Target architecture (x64|x86|arm64)"
         required: false
         default: x64
+  # Regular online-MSVC verification: msvc-kit bundle downloads the newest
+  # MSVC + Windows SDK from Microsoft and compiles against them. Runs on every
+  # main push (release gate) and weekly, so a Microsoft package update that
+  # breaks the download pipeline is caught before it ships.
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 2 * * 1"
   # Also run on PRs that modify bundle-related code
   pull_request:
     paths:
