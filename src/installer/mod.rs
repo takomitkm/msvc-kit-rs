@@ -99,12 +99,11 @@ fn classify_sdk_payload_for_extraction(file: &Path, target: Architecture) -> Sdk
                 .and_then(|n| n.to_str())
                 .unwrap_or_default()
                 .to_lowercase();
-            if SDK_OPTIONAL_MSI_SKIP_PATTERNS
+            let skip = SDK_OPTIONAL_MSI_SKIP_PATTERNS
                 .iter()
                 .any(|pattern| name.contains(pattern))
-            {
-                SdkExtractionAction::SkipOptional
-            } else if sdk_msi_is_other_arch(&name, target) {
+                || sdk_msi_is_other_arch(&name, target);
+            if skip {
                 SdkExtractionAction::SkipOptional
             } else {
                 SdkExtractionAction::Extract
