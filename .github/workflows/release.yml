@@ -41,19 +41,23 @@ jobs:
       version: ${{ steps.release.outputs.version }}
     steps:
       - name: Skip if no PAT for release-please (fork-friendly)
+        id: check-token
         env:
           RELEASE_PLEASE_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         run: |
           if [[ -z "$RELEASE_PLEASE_TOKEN" && -z "$PERSONAL_ACCESS_TOKEN" ]]; then
             echo "::notice title=release-please skipped::No RELEASE_PLEASE_TOKEN/PERSONAL_ACCESS_TOKEN on this fork; auto release PR is skipped. Publish by pushing a v* tag."
+            echo "has_token=false" >> "$GITHUB_OUTPUT"
             echo "release_created=" >> "$GITHUB_OUTPUT"
             echo "tag_name=" >> "$GITHUB_OUTPUT"
             echo "version=" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          echo "has_token=true" >> "$GITHUB_OUTPUT"
 
       - uses: googleapis/release-please-action@v5
+        if: steps.check-token.outputs.has_token == 'true'
         id: release
         with:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.PERSONAL_ACCESS_TOKEN || github.token }}
