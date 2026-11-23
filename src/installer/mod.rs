@@ -44,6 +44,7 @@ pub(crate) const SDK_OPTIONAL_MSI_SKIP_PATTERNS: &[&str] = &[
     "application verifier",
     "winrt intellisense",
     "windows store apps",
+    "uapsdk",
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -640,6 +641,9 @@ mod tests {
             PathBuf::from(
                 "downloads/sdk/28000_x64/Installers/Windows SDK for Windows Store Apps Tools-x86_en-us.msi",
             ),
+            PathBuf::from(
+                "downloads/sdk/28000_x64/Redistributable/10.1.0.0/UAPSDKAddOn-x86.msi",
+            ),
             PathBuf::from("downloads/sdk/26100_arm64/Installers/Windows SDK Desktop Headers arm64-x86_en-us.msi"),
         ];
 
@@ -665,11 +669,15 @@ mod tests {
         );
         assert_eq!(
             classify_sdk_payload_for_extraction(&payloads[5]),
+            SdkExtractionAction::SkipOptional
+        );
+        assert_eq!(
+            classify_sdk_payload_for_extraction(&payloads[6]),
             SdkExtractionAction::Extract
         );
 
         let extractable = sdk_payloads_to_extract(&payloads);
-        assert_eq!(extractable, vec![payloads[5].clone()]);
+        assert_eq!(extractable, vec![payloads[6].clone()]);
     }
 
     #[tokio::test]
