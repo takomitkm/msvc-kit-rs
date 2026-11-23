@@ -108,7 +108,7 @@ fn classify_sdk_payload_for_extraction(
                 .any(|pattern| name.contains(pattern))
             {
                 SdkExtractionAction::SkipOptional
-            } else if sdk_msi_is_other_arch(name, target) {
+            } else if sdk_msi_is_other_arch(&name, target) {
                 SdkExtractionAction::SkipOptional
             } else {
                 SdkExtractionAction::Extract
