@@ -85,8 +85,9 @@ jobs:
 
   # Publish to crates.io. The crates.io package is owned by the upstream
   # (loonghao/msvc-kit); a fork with no CARGO_REGISTRY_TOKEN cannot and
-  # should not publish there. The job skips cleanly in that case so the
-  # binary build + GitHub Release pipeline still runs on the fork.
+  # should not publish there. Secrets cannot be referenced in job-level
+  # `if` expressions, so the token check runs as the first step and
+  # skips the rest of the job when the token is absent.
   crates-publish:
     name: Publish to crates.io
     runs-on: windows-latest
@@ -94,9 +95,17 @@ jobs:
     if: |
       always() &&
       ((needs.release-please.result == 'success' && needs.release-please.outputs.release_created == 'true') ||
-       (needs.check-tag.result == 'success' && needs.check-tag.outputs.is_tag == 'true')) &&
-      secrets.CARGO_REGISTRY_TOKEN != ''
+       (needs.check-tag.result == 'success' && needs.check-tag.outputs.is_tag == 'true'))
     steps:
+      - name: Skip if no crates.io token (fork-friendly)
+        shell: bash
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          if [ -z "$CARGO_REGISTRY_TOKEN" ]; then
+            echo "::notice title=crates.io publish skipped::No CARGO_REGISTRY_TOKEN configured; this is expected on a fork (crates.io is owned by the upstream)."
+            exit 0
+          fi
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.release-please.outputs.tag_name || needs.check-tag.outputs.tag_name }}
