@@ -80,6 +80,13 @@ New CLI flags: `--profile` (plan), `--prune-profile` (download, apply).
 
 **Total: 714 passed / 0 failed / 7 ignored (network-gated) + 23 doc tests**
 
+> **v2 fix round supersedes this total.** After the v2 preflight revisions R1–R7
+> (fixes G-1..G-8) landed on top of P11, the final tip's full log reports
+> **731 passed / 0 failed / 7 ignored + 23 doc tests** on the school machine.
+> The per-phase numbers above are historical snapshots of each phase HEAD;
+> 731 is the authoritative unified count for the fixed tip (see the
+> "v2 fix round" section below).
+
 ## Fault injection summary
 
 - Total injection points: 11 (spec 08 §10 subset applicable to the transaction lifecycle)
@@ -99,6 +106,37 @@ New CLI flags: `--profile` (plan), `--prune-profile` (download, apply).
 - 3. rustfmt version drift between CI (rustup-managed, newer) and the build machine (1.100) required three style-only fix commits (6bc0a51, f7fc575, 270b29f). The CI-failing shas e77657c, 6087ebb and fa0f9ba were repaired same-session.
 - 4. Unicode normalization in path collision keys uses NFC + `to_lowercase()`; Windows upcase tables are approximated. Full Windows case folding is not implemented by any mainstream Rust crate (DEC-006).
 - 5. `D:\msvc-kit-rs` (build machine) may have stale dirty files from scp; always `git checkout -- . && git clean -fd && git merge --ff-only origin/main` before verification.
+
+## v2 fix round (pre-flight revisions R1–R7, gaps G-1..G-8)
+
+Following the external pre-flight review, eight gaps were fixed on a work branch
+`wip/v2-g5-g6-g7` (G-1..G-4 were first landed on `main` as `34b662b`, then
+G-5..G-8 completed the branch as `ebf7d38` + `3a632fb`). Each gap was fixed with
+a test written first, then verified on the school machine (fmt / clippy / full
+test / doc, all green) before pushing.
+
+| Gap | Revision | Risk fixed | Commit |
+|---|---|---|---|
+| G-1 | R7 (P0) | GC `list_blobs_at()` used `is_dir()` which follows symlinks; reparse points in the shard tree could escape GC. Now uses `symlink_metadata()` and skips reparse points. | 34b662b |
+| G-2 | R5+R7 (P0) | `pins()` returned an empty set on a corrupt `pins.json` (fail-open), letting GC sweep pinned blobs. Now returns `Result` and fail-closes. | 34b662b |
+| G-3 | marker semantics (P1) | `stage_package()` used a package-level `skipped_via_marker` boolean that dropped ALL staged files when any payload had a valid marker (mixed cache state). Replaced with `extracted_any`: only newly extracted payloads contribute staged files. | 34b662b |
+| G-4 | R3 (P1) | `MsiexecBackend::extract()` ran `msiexec` without verifying payload SHA256, so an unverified MSI crossed the trust boundary. Added an `expected_sha256` check before extraction (`MsvcKitError::HashMismatch`). | 34b662b |
+| G-5 | R4 (P1) | Crash-recovery proof was same-process fault injection, not a real kill. Added `real_process_crash_recovery_restores_original_bytes`: a helper child runs the transaction to the AfterInstall fault and calls `std::process::abort()`; the parent process verifies the journal state and `recover_pending` restores the original bytes. | ebf7d38 / 3a632fb |
+| G-6 | R7 (P1) | Archive extraction wrote through pre-existing reparse points (TOCTOU). Added `check_no_reparse_within()` (checks the staging root itself plus every component) wired into VSIX + CAB extraction: staging root, `planned_dirs` `create_dir_all`, and each file's full `out_path` before `File::create`. | ebf7d38 |
+| G-7 | R2 (P2) | ZIP/VSIX directory entries (`dir/`) were rejected by the empty-basename rule, and `trim_end_matches` wrongly accepted `dir//`. Added `strip_one_trailing_separator()` (strips exactly one separator): `dir/` resolves, `dir//` (empty component) and `dir/./` (`.` component) are still rejected. | ebf7d38 |
+| G-8 | R6 (P2) | `plan` had no way to bypass the manifest cache. Added `plan --no-cache`: points the manifest cache at a fresh temp dir so the persistent cache is neither read nor written. | ebf7d38 |
+
+**G-5 honesty note (R4):** the crash test uses a real helper child process
+that aborts at the journal boundary with the OS closing its handles, and an
+independent parent process verifies recovery. No fault boundary could not be
+injected; no gap was marked BLOCKED and no crash-safety claim rests on
+same-process simulation.
+
+**Unified count:** the post-fix tip's full log reports
+**731 passed / 0 failed / 7 ignored (network-gated) + 23 doc tests**
+(lib 284 + bin 7 + integration 440), replacing the earlier 714/724/727
+figures. The known upstream flake `a_corrupted_first_transfer_is_refetched_and_succeeds`
+passes in isolation and did not fail in this run.
 
 ## Manual actions needed from user
 
