@@ -80,3 +80,26 @@ lib unittests 218, bin unittests 7, integration 24+20+11+29+7+50+16+36+3+6+11+5+
 | P10-T01 | P10 | cargo test --all-features --no-fail-fast (final) | Win11, user | PASS | D:/rust/p02c-test.log | 724 passed / 0 failed / 7 ignored; adds 4 provider tests (MSVC detect, version resolve, build tool detect, provider_id) |
 | P10-T02 | P10 | cargo fmt --all -- --check (final) | Win11, user | PASS | D:/rust/p02c-fmt.log |  |
 | P10-T03 | P10 | cargo clippy --all-targets --all-features -- -D warnings (final) | Win11, user | PASS | D:/rust/p02c-clippy.log |  |
+
+## v2 fix round (R1–R7, gaps G-1..G-8) — unified final numbers
+
+All commands on the school machine (Win11, cargo 1.100.0, MSVC 14.44.35207) via
+scheduled task. G-1..G-4 landed on `main` (`34b662b`); G-5..G-8 on branch
+`wip/v2-g5-g6-g7` (`ebf7d38` + `3a632fb`). This final run (`3a632fb`) is the
+authoritative unified count that supersedes the per-phase numbers above.
+
+| Test ID | Phase | Command / Test | OS / Privilege | Result | Evidence/log | Notes |
+|---|---|---|---|---|---|---|
+| V2-T01 | G-1..G-4 | `cargo test --all-features --no-fail-fast` @ 34b662b | Win11, user | PASS | D:/rust/g14-test.log | G-1 GC reparse skip, G-2 pins fail-closed, G-3 marker `extracted_any`, G-4 MSI SHA256 boundary. Final count recorded in D:/rust/g14-test.log (34b662b = 731 minus the 3 tests added later by G-5/G-6/G-7) |
+| V2-T02 | G-5 | `cargo test --all-features --test transaction_tests real_process_crash_recovery_restores_original_bytes` | Win11, user | PASS | D:/rust/v2wip-test.log | real cross-process crash: helper child aborts at AfterInstall journal boundary, parent `recover_pending` restores original bytes, recovery idempotent |
+| V2-T03 | G-6 | `cargo test --all-features` (path_safety unit + extractor) | Win11, user | PASS | D:/rust/v2wip-test.log | `check_no_reparse_within` covers staging root, planned_dirs, file out_path; directory-symlink detection test (skips cleanly if dev mode/elevation unavailable) |
+| V2-T04 | G-7 | `cargo test --all-features --lib path_safety g7_trailing_separator` | Win11, user | PASS | D:/rust/v2wip-test.log | `dir/` strips one separator and resolves; `dir//` (empty component) and `dir/./` (`.` component) still rejected |
+| V2-T05 | G-8 | `cargo test --all-features` (plan CLI) + `plan --no-cache` path | Win11, user | PASS | D:/rust/v2wip-test.log | `--no-cache` points manifest cache at a fresh temp dir; persistent cache untouched |
+| V2-T06 | G-5..G-8 | `cargo fmt --all -- --check` | Win11, user | PASS | D:/rust/v2wip-fmt-check.log | exit 0 |
+| V2-T07 | G-5..G-8 | `cargo clippy --all-targets --all-features -- -D warnings` | Win11, user | PASS | D:/rust/v2wip-clippy.log | exit 0 (after async fix to G-5 helper) |
+| V2-T08 | G-5..G-8 | `cargo test --all-features --no-fail-fast` (final) | Win11, user | PASS | D:/rust/v2wip-test.log | **731 passed / 0 failed / 7 ignored** (lib 284 + bin 7 + integration 440) |
+| V2-T09 | G-5..G-8 | `cargo test --doc` | Win11, user | PASS | D:/rust/v2wip-test-doc.log | 23 passed |
+
+**Unified total: 731 passed / 0 failed / 7 ignored (network-gated) + 23 doc tests**
+at tip `3a632fb`. Known upstream flake `a_corrupted_first_transfer_is_refetched_and_succeeds`
+did not fail in this run (passes in isolation).
