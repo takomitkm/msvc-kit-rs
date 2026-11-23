@@ -49,6 +49,14 @@ jobs:
     timeout-minutes: 90
     env:
       BUNDLE_ARCH: ${{ inputs.arch || 'x64' }}
+      # Short output root on purpose: SDK 28000 contains deep
+      # `Windows Kits\10\References\...` paths, and Windows Installer
+      # (/a administrative extraction) is limited to MAX_PATH 260. The
+      # runner's default workspace (D:\a\<repo>\<repo>) plus the transaction
+      # staging prefix would push those files past 260 (measured 282) and
+      # msiexec would fail with Error 1304 -> 1603. The activation contract
+      # test extracts these steps and overrides BUNDLE_DIR for its fixtures.
+      BUNDLE_DIR: D:\b
     steps:
       - uses: actions/checkout@v7
 
@@ -109,7 +117,7 @@ jobs:
           # The runner's default workspace (D:\a\<repo>\<repo>) plus the
           # transaction staging prefix would push those files past 260 and
           # msiexec would fail with Error 1304 -> 1603.
-          $bundleDir = "D:\b"
+          $bundleDir = $env:BUNDLE_DIR
           & ".\target\release\msvc-kit.exe" bundle `
             --accept-license `
             --arch $env:BUNDLE_ARCH `
@@ -151,7 +159,7 @@ jobs:
       - name: Validate extracted toolchain selection and compilation
         shell: pwsh
         run: |
-          $bundleDir = 'D:\b'
+          $bundleDir = $env:BUNDLE_DIR
           $selection = @('--dir', $bundleDir, '--arch', $env:BUNDLE_ARCH, '--host-arch', 'x64')
           $queryJson = & .\target\release\msvc-kit.exe query @selection --format json | Out-String
           if ($LASTEXITCODE -ne 0) { throw 'Bundle toolchain query failed' }
@@ -178,7 +186,7 @@ jobs:
       - name: Validate setup.bat activates environment
         shell: cmd
         run: |
-          cd /d "D:\b"
+          cd /d "%BUNDLE_DIR%"
           if not "%errorlevel%"=="0" exit /b %errorlevel%
           call setup.bat
           if not "%errorlevel%"=="0" exit /b %errorlevel%
@@ -194,7 +202,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          Set-Location D:\b
+          Set-Location $env:BUNDLE_DIR
           . .\setup.ps1
           if ($env:VSCMD_ARG_HOST_ARCH -ne 'x64' -or $env:VSCMD_ARG_TGT_ARCH -ne $env:BUNDLE_ARCH) {
             throw 'PowerShell activation selected incorrect architectures'
@@ -211,7 +219,7 @@ jobs:
       - name: Test simple compilation
         shell: cmd
         run: |
-          cd /d "D:\b"
+          cd /d "%BUNDLE_DIR%"
           if not "%errorlevel%"=="0" exit /b %errorlevel%
           call setup.bat
           if not "%errorlevel%"=="0" exit /b %errorlevel%
